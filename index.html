@@ -174,6 +174,8 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .cal-dot.pending{background:var(--yellow)}
 .cal-dot.cancelled{background:var(--gray-300)}
 .cal-dot.couple{background:var(--gold)}
+.cal-dot.solo{background:var(--green-light)}
+.cal-dot.join{background:#7B61FF}  /* 조인플레이 — 보라색 */
 
 /* ── 섹션 타이틀 ── */
 .upcoming-section{padding:16px 14px 0}
@@ -807,8 +809,11 @@ textarea.form-input{resize:none;min-height:72px}
       <input type="text" class="form-input" id="sched-companions" placeholder="예: 김철수, 이영희">
     </div>
     <div class="form-group">
-      <label class="form-label">티타임</label>
-      <input type="text" class="form-input" id="sched-tee" placeholder="예: 1번홀 07:30">
+      <label class="form-label">플레이 유형</label>
+      <div class="status-btn-group">
+        <button class="status-btn" data-play="join" onclick="selectPlayType(this)">👥 조인플레이</button>
+        <button class="status-btn" data-play="solo" onclick="selectPlayType(this)">🧍 단독팀</button>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">상태</label>
@@ -1154,6 +1159,7 @@ let S={
   calY:new Date().getFullYear(),calM:new Date().getMonth(),
   selDay:null,editSId:null,editRId:null,
   selStatus:'confirmed',selMistakes:{},activeMistake:null,
+  playType:'join',  // 'join' | 'solo'
   roundFilter:'all',statsCount:5,
   schedMonth:new Date().getMonth(),
   scoreMode:'simple',
@@ -1340,6 +1346,7 @@ function schedToSb(s){ return {
   companions:s.companions||null, tee_time:s.teeTime||null,
   status:s.status, round_id:s.roundId||null,
   is_couple:!!s.isCouple, couple_group_id:s.coupleGroupId||null,
+  play_type:s.playType||'join',
   created_at:s.createdAt,
 };}
 function sbToSched(r){ return {
@@ -1348,6 +1355,7 @@ function sbToSched(r){ return {
   companions:r.companions||'', teeTime:r.tee_time||'',
   status:r.status||'confirmed', roundId:r.round_id||null,
   isCouple:r.is_couple||false, coupleGroupId:r.couple_group_id||null,
+  playType:r.play_type||'join',
   createdAt:r.created_at,
 };}
 function roundToSb(r){ return {
@@ -1472,7 +1480,13 @@ function mkCell(dt,extra,scheds,todayStr){
     const couple=document.getElementById('couple-toggle').checked;
     ds_scheds.slice(0,3).forEach(s=>{
       const dot=document.createElement('div');
-      dot.className='cal-dot '+(couple&&s.userId!==S.user?'couple':s.status);
+      // 도트 색상: 취소=회색, 미정=노랑, 조인=보라, 단독=초록, 부부=골드
+      let dotClass;
+      if(s.status==='cancelled') dotClass='cancelled';
+      else if(s.status==='pending') dotClass='pending';
+      else if(couple&&s.userId!==S.user) dotClass='couple';
+      else dotClass=s.playType==='solo'?'solo':'join';
+      dot.className='cal-dot '+dotClass;
       dots.appendChild(dot);
     });
     cell.appendChild(dots);
@@ -1541,6 +1555,7 @@ async function openScheduleSheet(id){
     document.getElementById('sched-companions').value=s.companions||'';
     document.getElementById('sched-tee').value=s.teeTime||'';
     S.selStatus=s.status;
+    S.playType=s.playType||'join';
     // 공유 일정이면 수정 범위 선택 표시
     if(s.isCouple){
       coupleRow.style.display='none';
@@ -1550,15 +1565,22 @@ async function openScheduleSheet(id){
   } else {
     document.getElementById('sched-date').value=S.selDay||today();
     ['sched-course','sched-course-name','sched-companions','sched-tee'].forEach(eid=>document.getElementById(eid).value='');
-    S.selStatus='confirmed';
+    S.selStatus='confirmed'; S.playType='join';
   }
-  updateStatusBtns(); openSheet('sched-sheet');
+  updateStatusBtns(); updatePlayTypeBtns(); openSheet('sched-sheet');
 }
 function selectStatus(btn){S.selStatus=btn.dataset.status;updateStatusBtns();}
 function updateStatusBtns(){
-  document.querySelectorAll('.status-btn').forEach(b=>{
+  document.querySelectorAll('.status-btn[data-status]').forEach(b=>{
     b.className='status-btn';
     if(b.dataset.status===S.selStatus) b.classList.add('sel-'+S.selStatus);
+  });
+}
+function selectPlayType(btn){S.playType=btn.dataset.play;updatePlayTypeBtns();}
+function updatePlayTypeBtns(){
+  document.querySelectorAll('.status-btn[data-play]').forEach(b=>{
+    b.className='status-btn';
+    if(b.dataset.play===S.playType) b.classList.add(S.playType==='join'?'sel-confirmed':'sel-pending');
   });
 }
 function onCoupleToggle(){
@@ -1582,6 +1604,7 @@ async function saveSchedule(){
     companions:document.getElementById('sched-companions').value.trim(),
     teeTime:document.getElementById('sched-tee').value.trim(),
     status:S.selStatus, roundId:null, createdAt:Date.now(),
+    playType:S.playType,
     isCouple:false, coupleGroupId:null,
   };
 
@@ -1921,6 +1944,11 @@ function schedCardHTML(s){
       <div class="sched-meta">
         ${s.teeTime?`<span>⛳ ${s.teeTime}</span>`:''}
         ${s.companions?`<span>👥 ${s.companions}</span>`:''}
+      </div>
+      <div style="margin-top:5px">
+        <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;${s.playType==='solo'?'background:var(--green-pale);color:var(--green-mid)':'background:#EDE9FF;color:#5B3FD4'}">
+          ${s.playType==='solo'?'🧍 단독팀':'👥 조인플레이'}
+        </span>
       </div>
     </div>
     <div class="sched-right">
