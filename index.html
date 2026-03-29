@@ -261,13 +261,30 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .hole-scores-label{font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
 .hole-scores-row{display:flex;gap:3px;align-items:center;overflow-x:auto}
 .hole-scores-row::-webkit-scrollbar{display:none}
-.hole-score-cell{min-width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:11px;font-weight:700}
-.hole-score-cell.eagle{background:#7ECFA0;color:#0A3B1E}
-.hole-score-cell.birdie{background:#B8E8CA;color:#0F5E30}
-.hole-score-cell.par{background:var(--gray-100);color:var(--gray-700)}
-.hole-score-cell.bogey{background:#FCE8B0;color:#7A5000}
-.hole-score-cell.double{background:#F6C4C4;color:#8B0000}
-.hole-score-cell.worse{background:#C93535;color:#fff}
+.hole-score-cell{
+  min-width:36px;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:6px;padding:4px 2px;gap:1px;
+  border:1.5px solid var(--gray-100);
+  background:var(--gray-50);
+}
+.hole-score-cell .hsc-par{font-size:9px;color:var(--text-muted);font-weight:600;}
+.hole-score-cell .hsc-score{font-size:14px;font-weight:900;color:var(--text-main);line-height:1;}
+.hole-score-cell .hsc-diff{font-size:9px;font-weight:700;}
+/* 버디/이글만 초록, 나머지 통일 */
+.hole-score-cell.eagle{background:#D4F5E2;border-color:#52B788;}
+.hole-score-cell.eagle .hsc-score{color:#0A3B1E;}
+.hole-score-cell.eagle .hsc-diff{color:#1A6B38;}
+.hole-score-cell.birdie{background:#E8F7EE;border-color:#74C99A;}
+.hole-score-cell.birdie .hsc-score{color:#0F5E30;}
+.hole-score-cell.birdie .hsc-diff{color:#2D9348;}
+.hole-score-cell.par .hsc-diff{color:var(--gray-400,#9ab0a3);}
+.hole-score-cell.bogey{background:var(--gray-50);border-color:var(--gray-200);}
+.hole-score-cell.bogey .hsc-diff{color:var(--text-sub);}
+.hole-score-cell.double{background:var(--gray-50);border-color:var(--gray-200);}
+.hole-score-cell.double .hsc-diff{color:var(--text-sub);}
+.hole-score-cell.worse{background:var(--gray-50);border-color:var(--gray-200);}
+.hole-score-cell.worse .hsc-diff{color:var(--text-sub);}
 .hole-score-sep{font-size:10px;color:var(--gray-200);padding:0 4px;flex-shrink:0}
 .hole-scores-sum-row{display:flex;gap:14px;margin-top:6px;font-size:12px;color:var(--text-muted)}
 .hole-scores-sum-row span{font-weight:700;color:var(--green-rich)}
@@ -576,18 +593,18 @@ textarea.form-input{resize:none;min-height:72px}
 .hole-table .ht-par{font-size:11px;color:var(--text-sub);}
 .hole-table .ht-score{border-radius:5px;font-size:12px;font-weight:700;display:inline-block;width:24px;height:24px;line-height:24px;}
 .hole-table .ht-diff{font-size:10px;font-weight:600;}
-.ht-eagle{background:#7ECFA0;color:#0A3B1E;}
-.ht-birdie{background:#B8E8CA;color:#0F5E30;}
+.ht-eagle{background:#D4F5E2;color:#0A3B1E;}
+.ht-birdie{background:#E8F7EE;color:#0F5E30;}
 .ht-par{background:var(--gray-100);color:var(--gray-700);}
-.ht-bogey{background:#FCE8B0;color:#7A5000;}
-.ht-double{background:#F6C4C4;color:#8B0000;}
-.ht-worse{background:#C93535;color:#fff;}
+.ht-bogey{background:var(--gray-50);color:var(--text-main);}
+.ht-double{background:var(--gray-50);color:var(--text-main);}
+.ht-worse{background:var(--gray-50);color:var(--text-main);}
 .ht-diff-eagle{color:#0A3B1E;}
 .ht-diff-birdie{color:#0F5E30;}
 .ht-diff-par{color:var(--gray-300);}
-.ht-diff-bogey{color:#7A5000;}
-.ht-diff-double{color:var(--red);}
-.ht-diff-worse{color:#8B0000;}
+.ht-diff-bogey{color:var(--text-sub);}
+.ht-diff-double{color:var(--text-sub);}
+.ht-diff-worse{color:var(--text-sub);}
 .half-summary{
   display:flex;justify-content:space-between;align-items:center;
   background:var(--green-bg);border-radius:var(--r-sm);
@@ -2460,7 +2477,17 @@ function roundCardHTML(r,showUser){
     const pars=r.holePars||PAR;
     const front=r.holeScores.slice(0,9),back=r.holeScores.slice(9);
     const cls=(s,i)=>{const d=s-pars[i];return d<=-2?'eagle':d===-1?'birdie':d===0?'par':d===1?'bogey':d===2?'double':'worse';};
-    const cells=(arr,offset)=>arr.map((s,i)=>`<div class="hole-score-cell ${cls(s,offset+i)}">${s}</div>`).join('');
+    const cells=(arr,offset)=>arr.map((s,i)=>{
+      const gi=offset+i;
+      const p=pars[gi];
+      const d=s-p;
+      const diffStr=d>0?`+${d}`:d===0?'E':`${d}`;
+      return `<div class="hole-score-cell ${cls(s,gi)}">
+        <span class="hsc-par">P${p}</span>
+        <span class="hsc-score">${s}</span>
+        <span class="hsc-diff">${diffStr}</span>
+      </div>`;
+    }).join('');
     const fPar=pars.slice(0,9).reduce((a,b)=>a+b,0),bPar=pars.slice(9).reduce((a,b)=>a+b,0);
     const fSum=front.reduce((a,b)=>a+b,0),bSum=back.reduce((a,b)=>a+b,0);
     const dl=d=>d>0?`+${d}`:d===0?'E':`${d}`;
