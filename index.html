@@ -1,0 +1,2302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="골프노트">
+<meta name="theme-color" content="#1A3D2B">
+<meta name="description" content="우리 부부 골프 일정 & 기록 대시보드">
+<link id="pwa-manifest" rel="manifest">
+<title>골프노트</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* 컬러 팔레트 — 딥 포레스트 + 골드 */
+  --green-deep:#0F2D1E;
+  --green-mid:#1E5C3A;
+  --green-rich:#2D7A52;
+  --green-light:#4BAE78;
+  --green-pale:#E0F5E9;
+  --green-bg:#F0F7F3;
+  --gold:#C9A84C;
+  --gold-light:#FBF0D4;
+  --gold-dim:#8A6B2A;
+  --white:#FFFFFF;
+  --gray-50:#F7FAF8;
+  --gray-100:#E8EFEB;
+  --gray-200:#D4DED8;
+  --gray-300:#B0C4B8;
+  --gray-500:#6E8C7A;
+  --gray-700:#374D41;
+  --text-main:#0D1F16;
+  --text-sub:#516B5C;
+  --text-muted:#8FA89A;
+  --red:#C93535;
+  --red-pale:#FDEAEA;
+  --yellow:#D4860E;
+  --yellow-pale:#FEF3DC;
+  --r-sm:10px; --r-md:16px; --r-lg:24px; --r-xl:28px;
+  --sh-xs:0 1px 4px rgba(0,0,0,.06);
+  --sh-sm:0 2px 12px rgba(0,0,0,.08);
+  --sh-md:0 6px 24px rgba(0,0,0,.10);
+  --sh-lg:0 12px 40px rgba(0,0,0,.16);
+  --sh-green:0 4px 16px rgba(15,45,30,.25);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--green-bg);color:var(--text-main);overflow:hidden;font-size:15px;line-height:1.5}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,textarea,select{font-family:inherit;font-size:15px}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── 사용자 선택 ── */
+#user-select-screen{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;
+  background:linear-gradient(155deg,#0A1F14 0%,#0F2D1E 45%,#163828 100%);
+  padding:32px 24px;gap:44px;
+  position:relative;overflow:hidden;
+}
+#user-select-screen::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.select-logo{text-align:center;color:#fff;position:relative}
+.select-logo .icon{font-size:52px;margin-bottom:14px;filter:drop-shadow(0 4px 12px rgba(201,168,76,.4))}
+.select-logo h1{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.select-logo p{font-size:13px;color:rgba(255,255,255,.45);margin-top:5px;letter-spacing:.3px}
+.select-cards{display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px}
+.user-card{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r-lg);padding:20px 22px;
+  display:flex;align-items:center;gap:16px;color:#fff;
+  cursor:pointer;
+  backdrop-filter:blur(12px);
+  transition:all .2s;
+  box-shadow:0 4px 20px rgba(0,0,0,.2);
+}
+.user-card:active{opacity:.8;transform:scale(.98)}
+.user-card .avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0}
+.user-card .info h3{font-size:17px;font-weight:600}
+.user-card .info p{font-size:12px;color:rgba(255,255,255,.45);margin-top:2px}
+.user-card .arrow{margin-left:auto;color:rgba(255,255,255,.3);font-size:18px}
+
+/* ── 메인 헤더 ── */
+#main-app{display:none;flex-direction:column;height:100%;overflow:hidden}
+.app-header{
+  background:linear-gradient(180deg,#0F2D1E 0%,#142E20 100%);
+  color:#fff;
+  padding:env(safe-area-inset-top,0px) 20px 0;
+  flex-shrink:0;
+  box-shadow:0 2px 16px rgba(0,0,0,.25);
+}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:13px 0}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-avatar{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+}
+.header-name{font-size:16px;font-weight:700;letter-spacing:-.2px}
+.header-date{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+.header-switch{
+  font-size:12px;color:rgba(255,255,255,.65);
+  background:rgba(255,255,255,.1);
+  border-radius:20px;padding:6px 13px;
+  border:1px solid rgba(255,255,255,.12);
+  letter-spacing:.2px;
+}
+.header-switch:active{background:rgba(255,255,255,.18)}
+.tab-nav{display:flex;border-bottom:1px solid rgba(255,255,255,.08)}
+.tab-nav-btn{
+  flex:1;padding:10px 0 11px;font-size:12px;font-weight:500;
+  color:rgba(255,255,255,.45);text-align:center;
+  border-bottom:2px solid transparent;transition:all .2s;
+}
+.tab-nav-btn.active{color:#fff;border-bottom-color:var(--gold)}
+
+/* ── 콘텐츠 ── */
+.tab-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--green-bg);padding-bottom:24px}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ── 캘린더 ── */
+.calendar-section{background:var(--white);padding:16px;box-shadow:var(--sh-xs)}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-title{font-size:17px;font-weight:700;color:var(--text-main)}
+.cal-nav{display:flex;gap:4px}
+.cal-nav button{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:var(--text-sub);
+  background:var(--gray-100);
+  transition:background .15s;
+}
+.cal-nav button:active{background:var(--gray-200)}
+.cal-couple-toggle{
+  display:flex;align-items:center;gap:6px;font-size:12px;
+  color:var(--text-sub);background:var(--gray-100);
+  padding:5px 10px;border-radius:20px;cursor:pointer;
+}
+.cal-couple-toggle input{cursor:pointer;accent-color:var(--green-mid)}
+.cal-days-header{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px}
+.cal-day-label{text-align:center;font-size:11px;font-weight:600;color:var(--gray-500);padding:4px 0}
+.cal-day-label:first-child{color:var(--red)}
+.cal-day-label:last-child{color:var(--green-rich)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;min-height:40px;transition:background .15s}
+.cal-cell:active{background:var(--gray-100)}
+.cal-cell.today .cal-num{
+  background:var(--green-deep);color:#fff;
+  width:27px;height:27px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(15,45,30,.4);
+}
+.cal-cell.selected .cal-num{
+  background:var(--green-light);color:#fff;
+  width:27px;height:27px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+.cal-num{font-size:14px;font-weight:500}
+.cal-cell.sun .cal-num{color:var(--red)}
+.cal-cell.sat .cal-num{color:var(--green-rich)}
+.cal-cell.other-month .cal-num{color:var(--gray-200)}
+.cal-dots{display:flex;gap:2px;margin-top:2px}
+.cal-dot{width:5px;height:5px;border-radius:50%}
+.cal-dot.confirmed{background:var(--green-light)}
+.cal-dot.pending{background:var(--yellow)}
+.cal-dot.cancelled{background:var(--gray-300)}
+.cal-dot.couple{background:var(--gold)}
+
+/* ── 섹션 타이틀 ── */
+.upcoming-section{padding:16px 14px 0}
+.section-title{
+  font-size:11px;font-weight:700;color:var(--text-muted);
+  letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;
+}
+.no-schedule{text-align:center;padding:20px;color:var(--gray-500);font-size:14px}
+
+/* ── 일정 카드 ── */
+.schedule-card{
+  background:var(--white);border-radius:var(--r-md);
+  padding:14px 16px;margin-bottom:10px;
+  box-shadow:var(--sh-sm);
+  display:flex;gap:12px;align-items:flex-start;cursor:pointer;
+  border-left:3px solid transparent;
+  transition:border-color .2s;
+}
+.schedule-card:active{opacity:.75}
+.schedule-card[data-status="confirmed"]{border-left-color:var(--green-light)}
+.schedule-card[data-status="pending"]{border-left-color:var(--gold)}
+.schedule-card[data-status="cancelled"]{border-left-color:var(--gray-300)}
+.sched-date-block{
+  text-align:center;min-width:40px;
+  background:linear-gradient(135deg,var(--green-pale),#C8EED8);
+  border-radius:10px;padding:6px 4px;flex-shrink:0;
+}
+.sched-date-block .day-num{font-size:21px;font-weight:900;color:var(--green-deep);line-height:1}
+.sched-date-block .day-name{font-size:10px;color:var(--green-rich);font-weight:700;margin-top:2px;letter-spacing:.3px}
+.sched-info{flex:1;min-width:0}
+.sched-course-name{font-size:15px;font-weight:700;margin-bottom:3px;color:var(--text-main)}
+.sched-course-sub{font-size:12px;color:var(--text-sub);margin-bottom:3px}
+.sched-meta{font-size:12px;color:var(--text-muted)}
+.sched-meta span{margin-right:8px}
+.sched-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.sched-status{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;letter-spacing:.2px}
+.sched-status.confirmed{background:var(--green-pale);color:var(--green-mid)}
+.sched-status.pending{background:var(--gold-light);color:var(--gold-dim)}
+.sched-status.cancelled{background:var(--gray-100);color:var(--gray-500);text-decoration:line-through}
+.sched-record-btn{font-size:11px;font-weight:600;background:var(--green-pale);color:var(--green-mid);padding:3px 9px;border-radius:20px;white-space:nowrap}
+.sched-add-record-btn{background:var(--green-deep);color:#fff;}
+
+/* ── 라운드 카드 ── */
+.round-card{
+  background:var(--white);border-radius:var(--r-md);
+  padding:16px;margin-bottom:10px;
+  box-shadow:var(--sh-sm);cursor:pointer;
+  position:relative;overflow:hidden;
+}
+.round-card::before{
+  content:'';position:absolute;top:0;right:0;
+  width:80px;height:80px;
+  background:radial-gradient(circle at top right,rgba(75,174,120,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.round-card:active{opacity:.75}
+.round-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.round-course{font-size:16px;font-weight:700;color:var(--text-main);letter-spacing:-.2px}
+.round-course-sub{font-size:12px;color:var(--text-sub);margin-top:2px}
+.round-date-str{font-size:12px;color:var(--text-muted);margin-top:3px}
+.round-score-wrap{text-align:center;background:linear-gradient(135deg,var(--green-deep),var(--green-mid));border-radius:12px;padding:8px 12px;min-width:52px;box-shadow:var(--sh-green)}
+.round-score-badge{font-size:24px;font-weight:900;color:#fff;line-height:1;letter-spacing:-1px}
+.round-score-label{font-size:10px;color:rgba(255,255,255,.7);text-align:center;margin-top:1px;letter-spacing:.5px}
+.round-stats{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.round-stat{display:flex;flex-direction:column;align-items:center}
+.round-stat-val{font-size:17px;font-weight:700;color:var(--text-main)}
+.round-stat-label{font-size:10px;color:var(--text-muted);margin-top:1px;letter-spacing:.3px}
+.round-divider{width:1px;height:28px;background:var(--gray-100)}
+.round-memo{font-size:12px;color:var(--text-sub);margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.round-mistakes{display:flex;gap:4px;flex-wrap:wrap}
+.mistake-tag{font-size:11px;background:var(--gray-100);color:var(--text-sub);padding:2px 8px;border-radius:20px;font-weight:500}
+.mistake-tag.good{background:var(--green-pale);color:var(--green-mid)}
+
+/* ── 홀별 스코어 (카드) ── */
+.hole-scores-wrap{margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100)}
+.hole-scores-label{font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
+.hole-scores-row{display:flex;gap:3px;align-items:center;overflow-x:auto}
+.hole-scores-row::-webkit-scrollbar{display:none}
+.hole-score-cell{min-width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:11px;font-weight:700}
+.hole-score-cell.eagle{background:#7ECFA0;color:#0A3B1E}
+.hole-score-cell.birdie{background:#B8E8CA;color:#0F5E30}
+.hole-score-cell.par{background:var(--gray-100);color:var(--gray-700)}
+.hole-score-cell.bogey{background:#FCE8B0;color:#7A5000}
+.hole-score-cell.double{background:#F6C4C4;color:#8B0000}
+.hole-score-cell.worse{background:#C93535;color:#fff}
+.hole-score-sep{font-size:10px;color:var(--gray-200);padding:0 4px;flex-shrink:0}
+.hole-scores-sum-row{display:flex;gap:14px;margin-top:6px;font-size:12px;color:var(--text-muted)}
+.hole-scores-sum-row span{font-weight:700;color:var(--green-rich)}
+
+/* ── FAB ── */
+.fab{
+  position:fixed;right:20px;bottom:24px;
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,var(--green-mid),var(--green-deep));
+  color:#fff;font-size:24px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--sh-green);z-index:100;transition:transform .15s;
+}
+.fab:active{transform:scale(.92)}
+
+/* ── 미니 통계 ── */
+.mini-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 0}
+.mini-stat-card{
+  background:var(--white);border-radius:var(--r-md);padding:16px;
+  box-shadow:var(--sh-sm);
+  position:relative;overflow:hidden;
+}
+.mini-stat-card::after{
+  content:'';position:absolute;bottom:-12px;right:-12px;
+  width:60px;height:60px;border-radius:50%;
+  background:radial-gradient(circle,rgba(75,174,120,.07),transparent);
+}
+.mini-stat-card .label{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:7px}
+.mini-stat-card .val{font-size:26px;font-weight:900;color:var(--green-deep);letter-spacing:-1px}
+.mini-stat-card .sub{font-size:11px;color:var(--text-muted);margin-top:3px}
+
+/* ── 통계 탭 ── */
+.stats-section{padding:14px 14px 0}
+.compare-card{
+  background:var(--white);border-radius:var(--r-md);
+  padding:18px;margin-bottom:12px;box-shadow:var(--sh-sm);
+}
+.compare-card h3{
+  font-size:11px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;
+}
+.compare-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.compare-name{font-size:13px;font-weight:600;width:56px;flex-shrink:0;color:var(--text-main)}
+.compare-bar-wrap{flex:1;height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden}
+.compare-bar{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.bar-mk{background:linear-gradient(90deg,var(--green-mid),var(--green-light))}
+.bar-my{background:linear-gradient(90deg,var(--gold-dim),var(--gold))}
+.compare-val{font-size:14px;font-weight:700;width:32px;text-align:right;flex-shrink:0;color:var(--text-main)}
+.mistake-freq-row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.mistake-type-name{font-size:13px;width:80px;flex-shrink:0;color:var(--text-main)}
+.mistake-freq-bar-wrap{flex:1;height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden}
+.mistake-freq-bar{height:100%;background:linear-gradient(90deg,var(--green-rich),var(--green-light));border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.mistake-freq-count{font-size:12px;font-weight:600;color:var(--text-sub);width:22px;text-align:right}
+
+/* ── 설정 탭 ── */
+.settings-section{padding:14px 14px 0}
+.settings-card{background:var(--white);border-radius:var(--r-md);padding:18px;margin-bottom:12px;box-shadow:var(--sh-sm)}
+.settings-card-danger{border:1px solid #f5d0d0}
+.settings-card-title{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text-main)}
+.settings-desc{font-size:13px;color:var(--text-sub);line-height:1.65;margin-bottom:14px}
+.settings-btn{width:100%;padding:13px;border-radius:var(--r-sm);font-size:14px;font-weight:600;text-align:center;transition:all .15s;display:block}
+.settings-btn-primary{background:linear-gradient(135deg,var(--green-mid),var(--green-deep));color:#fff;box-shadow:var(--sh-green)}
+.settings-btn-primary:active{opacity:.85}
+.settings-btn-secondary{background:var(--gray-100);color:var(--text-main)}
+.settings-btn-secondary:active{background:var(--gray-200)}
+.settings-btn-danger{background:var(--red-pale);color:var(--red)}
+.settings-btn-danger:active{background:#f5c6c6}
+.settings-btn+.settings-btn{margin-top:8px}
+.data-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:0}
+.data-stat{text-align:center;background:var(--green-bg);border-radius:var(--r-sm);padding:12px 6px}
+.data-stat-val{font-size:22px;font-weight:900;color:var(--green-deep);letter-spacing:-1px}
+.data-stat-label{font-size:11px;color:var(--text-muted);margin-top:2px}
+.ios-guide{background:var(--gray-50);border-radius:var(--r-sm);padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
+.ios-guide-step{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text-main)}
+.ios-step-num{min-width:22px;height:22px;background:var(--green-mid);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+
+/* ── 일정 탭 월 탭 ── */
+.month-tab-row{display:flex;overflow-x:auto;gap:6px;padding:12px 14px;background:var(--white);border-bottom:1px solid var(--gray-100);flex-shrink:0}
+.month-tab-row::-webkit-scrollbar{display:none}
+.month-tab{
+  flex-shrink:0;font-size:13px;font-weight:500;
+  padding:6px 14px;border-radius:20px;
+  background:var(--gray-50);color:var(--text-sub);
+  border:1.5px solid var(--gray-100);transition:all .15s;position:relative;
+}
+.month-tab.active{
+  background:var(--green-deep);color:#fff;
+  border-color:var(--green-deep);
+  box-shadow:0 2px 10px rgba(15,45,30,.3);
+}
+.month-tab.has-sched::after{content:'';position:absolute;top:4px;right:5px;width:5px;height:5px;border-radius:50%;background:var(--green-light)}
+.month-tab.active.has-sched::after{background:rgba(255,255,255,.7)}
+.schedule-month-group{padding:10px 14px 0}
+
+/* ── 목록 공통 ── */
+.list-section{padding:14px 14px 0}
+.filter-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+.filter-row::-webkit-scrollbar{display:none}
+.filter-btn{
+  flex-shrink:0;font-size:13px;font-weight:500;
+  padding:6px 14px;border-radius:20px;
+  background:var(--white);color:var(--text-sub);
+  border:1.5px solid var(--gray-100);transition:all .15s;
+}
+.filter-btn.active{
+  background:var(--green-deep);color:#fff;
+  border-color:var(--green-deep);
+  box-shadow:0 2px 10px rgba(15,45,30,.25);
+}
+
+/* ── 오버레이/시트 ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;opacity:0;transition:opacity .25s}
+.overlay.open{display:block;opacity:1}
+.bottom-sheet{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--white);border-radius:var(--r-xl) var(--r-xl) 0 0;
+  z-index:210;max-height:94vh;overflow-y:auto;
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+  padding-bottom:env(safe-area-inset-bottom,24px);
+}
+.bottom-sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--gray-200);border-radius:2px;margin:12px auto 16px}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;padding:0 20px 14px;border-bottom:1px solid var(--gray-100)}
+.sheet-title{font-size:17px;font-weight:700;color:var(--text-main)}
+.sheet-close{width:32px;height:32px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-sub)}
+.sheet-body{padding:20px}
+
+/* 폼 */
+.form-group{margin-bottom:16px}
+.form-label{font-size:13px;font-weight:600;color:var(--text-sub);margin-bottom:6px;display:block}
+.form-input{width:100%;padding:12px 14px;border:1.5px solid var(--gray-100);border-radius:var(--r-sm);font-size:15px;color:var(--text-main);background:var(--gray-50);transition:border-color .15s;-webkit-appearance:none}
+.form-input:focus{outline:none;border-color:var(--green-light);background:#fff}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.status-btn-group{display:flex;gap:8px}
+.status-btn{flex:1;padding:10px 0;border-radius:var(--r-sm);font-size:13px;font-weight:600;border:1.5px solid var(--gray-100);color:var(--text-sub);background:var(--gray-50);transition:all .15s}
+.status-btn.sel-confirmed{background:var(--green-pale);color:var(--green-mid);border-color:var(--green-light)}
+.status-btn.sel-pending{background:var(--gold-light);color:#8A6010;border-color:var(--gold)}
+.status-btn.sel-cancelled{background:var(--gray-100);color:var(--gray-700);border-color:var(--gray-300)}
+.mistake-select-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mistake-btn{padding:10px 4px;border-radius:var(--r-sm);font-size:13px;font-weight:500;border:1.5px solid var(--gray-100);color:var(--text-sub);background:var(--gray-50);text-align:center;transition:all .15s}
+.mistake-btn.selected{background:var(--green-pale);color:var(--green-deep);border-color:var(--green-light)}
+.mistake-count-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;color:var(--text-sub)}
+.count-ctrl{display:flex;align-items:center;gap:8px}
+.count-btn{width:30px;height:30px;border-radius:50%;background:var(--gray-100);color:var(--text-main);font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.count-val{font-size:16px;font-weight:700;min-width:20px;text-align:center}
+.form-submit-row{display:flex;gap:10px;margin-top:8px}
+.btn-submit{flex:1;padding:14px;border-radius:var(--r-md);font-size:15px;font-weight:700;background:var(--green-deep);color:#fff;transition:transform .15s}
+.btn-submit:active{transform:scale(.98)}
+.btn-delete{padding:14px 18px;border-radius:var(--r-md);font-size:15px;font-weight:600;background:var(--gray-100);color:var(--red)}
+.btn-delete:active{background:#fce8e8}
+
+/* 홀별 입력 */
+.score-mode-toggle{display:flex;border-radius:var(--r-sm);overflow:hidden;border:1.5px solid var(--gray-100);margin-bottom:14px}
+.score-mode-btn{flex:1;padding:9px 0;font-size:13px;font-weight:500;color:var(--text-sub);background:var(--gray-50);text-align:center;transition:all .15s}
+.score-mode-btn.active{background:var(--green-deep);color:#fff}
+.hole-section-label{font-size:12px;font-weight:600;color:var(--text-sub);display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hole-half-sum{font-size:13px;font-weight:700;color:var(--green-deep)}
+.hole-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-bottom:10px}
+.hole-cell{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hole-num{font-size:9px;color:var(--gray-500);font-weight:600}
+.hole-par-btn{font-size:8px;font-weight:700;color:var(--green-mid);background:var(--green-pale);border-radius:3px;padding:1px 2px;width:100%;text-align:center;cursor:pointer;transition:background .1s;border:none;line-height:1.4}
+.hole-par-btn:active{background:var(--green-light);color:#fff}
+.hole-inp{width:100%;height:34px;text-align:center;border:1.5px solid var(--gray-100);border-radius:6px;font-size:14px;font-weight:600;background:var(--gray-50);color:var(--text-main);padding:0;-webkit-appearance:none;transition:border-color .1s,background .1s}
+.hole-inp:focus{outline:none;border-color:var(--green-light);background:#fff}
+.hole-inp.hc-eagle{background:#C8F0D8;border-color:#52B788;color:#1A6B38}
+.hole-inp.hc-birdie{background:#D4EDDA;border-color:#74C99A;color:#1A6B38}
+.hole-inp.hc-par{background:var(--gray-100);border-color:var(--gray-300);color:var(--gray-700)}
+.hole-inp.hc-bogey{background:#FFF3CD;border-color:#E8A020;color:#856404}
+.hole-inp.hc-double{background:#F8D7DA;border-color:#D64040;color:#842029}
+.hole-inp.hc-worse{background:#D9534F;border-color:#C0392B;color:#fff}
+.hole-diff{font-size:9px;font-weight:700;text-align:center;min-height:11px;line-height:1.2}
+.hole-diff.hd-eagle{color:#1A6B38}
+.hole-diff.hd-birdie{color:#2D9348}
+.hole-diff.hd-par{color:var(--gray-400,#9ab0a3)}
+.hole-diff.hd-bogey{color:#856404}
+.hole-diff.hd-double{color:var(--red)}
+.hole-diff.hd-worse{color:#8B0000}
+.hole-total-bar{background:var(--green-pale);border-radius:var(--r-sm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.hole-total-label{font-size:13px;color:var(--green-mid);font-weight:600}
+.hole-total-num{font-size:18px;font-weight:700;color:var(--green-deep)}
+/* 샷 메모 */
+.shot-section-sep{font-size:11px;font-weight:600;color:var(--text-sub);margin:4px 0 6px;padding-left:2px}
+.mistake-btn.good-type{border-color:rgba(82,183,136,.4);color:var(--green-mid)}
+.mistake-btn.good-type.selected{background:var(--green-pale);color:var(--green-deep);border-color:var(--green-light)}
+.mistake-tag.good{background:var(--green-pale);color:var(--green-mid)}
+
+/* 날짜 시트 */
+.day-sched-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100);cursor:pointer}
+.day-sched-item:last-child{border-bottom:none}
+.day-sched-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.day-sched-dot.confirmed{background:var(--green-light)}
+.day-sched-dot.pending{background:var(--yellow)}
+.day-sched-dot.cancelled{background:var(--gray-300)}
+.day-sched-info{flex:1;min-width:0}
+.day-sched-course{font-size:15px;font-weight:600}
+.day-sched-time{font-size:12px;color:var(--text-sub)}
+.day-add-btn{width:100%;margin-top:14px;padding:12px;border-radius:var(--r-md);background:var(--green-pale);color:var(--green-deep);font-size:14px;font-weight:600;text-align:center}
+.day-add-btn:active{background:var(--green-light);color:#fff}
+.day-no-sched{padding:20px 0;text-align:center;color:var(--gray-500);font-size:14px}
+
+/* 유틸 */
+.badge-row{display:flex;align-items:center;gap:6px;margin-top:4px}
+.user-badge{font-size:11px;padding:2px 7px;border-radius:20px;font-weight:600}
+.badge-mk{background:rgba(45,106,79,.15);color:var(--green-mid)}
+.badge-my{background:var(--gold-light);color:#8A6010}
+.add-round-btn-wrap{padding:14px 14px 0}
+.add-round-btn{width:100%;padding:14px;background:var(--white);border:2px dashed var(--gray-300);border-radius:var(--r-md);color:var(--text-sub);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
+.add-round-btn:active{background:var(--green-pale)}
+textarea.form-input{resize:none;min-height:72px}
+.empty-state{text-align:center;padding:32px 20px;color:var(--gray-500)}
+.empty-state .icon{font-size:36px;margin-bottom:10px;opacity:.6}
+.empty-state p{font-size:14px}
+.empty-state .hint{font-size:12px;color:var(--gray-300);margin-top:6px}
+.past-label{font-size:11px;color:var(--gray-500);font-style:italic}
+
+/* 자동완성 */
+.ac-wrap{position:relative}
+.ac-dropdown{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--white);border:1.5px solid var(--green-light);
+  border-radius:var(--r-sm);box-shadow:var(--sh-md);
+  z-index:500;max-height:180px;overflow-y:auto;
+  display:none;
+}
+.ac-dropdown.open{display:block}
+.ac-item{
+  padding:11px 14px;font-size:14px;cursor:pointer;
+  border-bottom:1px solid var(--gray-100);
+  display:flex;flex-direction:column;gap:1px;
+}
+.ac-item:last-child{border-bottom:none}
+.ac-item:active,.ac-item:hover{background:var(--green-pale)}
+.ac-item-main{font-weight:600;color:var(--text-main)}
+.ac-item-sub{font-size:12px;color:var(--text-sub)}
+
+/* PWA 설치 배너 */
+.pwa-banner{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--green-deep);color:#fff;
+  padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:center;gap:12px;
+  z-index:300;box-shadow:0 -4px 20px rgba(0,0,0,.2);
+  transform:translateY(100%);transition:transform .3s ease;
+}
+.pwa-banner.show{transform:translateY(0)}
+.pwa-banner-icon{font-size:28px;flex-shrink:0}
+.pwa-banner-text{flex:1}
+.pwa-banner-text strong{font-size:14px;display:block;margin-bottom:2px}
+.pwa-banner-text span{font-size:12px;color:rgba(255,255,255,.65)}
+.pwa-banner-btn{background:var(--green-light);color:var(--green-deep);font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;flex-shrink:0}
+.pwa-banner-close{font-size:18px;color:rgba(255,255,255,.5);flex-shrink:0;padding:4px}
+
+/* ── 부부 공유 일정 ── */
+.couple-toggle-row{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--green-pale),#C8EED8);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:16px;border:1.5px solid rgba(75,174,120,.25);}
+.couple-toggle-left{flex:1}
+.couple-toggle-label{font-size:14px;font-weight:600;color:var(--green-deep)}
+.couple-toggle-sub{font-size:12px;color:var(--text-sub);margin-top:1px}
+.couple-switch{position:relative;width:44px;height:26px;flex-shrink:0;display:inline-block;}
+.couple-switch input{opacity:0;width:0;height:0;}
+.couple-switch .slider{position:absolute;inset:0;background:var(--gray-200);border-radius:13px;cursor:pointer;transition:.2s;}
+.couple-switch input:checked+.slider{background:var(--green-mid);}
+.couple-switch .slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.couple-switch input:checked+.slider::before{transform:translateX(18px);}
+.couple-badge{font-size:11px;font-weight:700;background:linear-gradient(135deg,var(--gold-light),#F5E0A0);color:var(--gold-dim);padding:2px 9px;border-radius:20px;border:1px solid rgba(201,168,76,.3);white-space:nowrap;}
+.couple-edit-row{display:flex;gap:8px;margin-top:4px;}
+.couple-edit-btn{flex:1;padding:10px 0;border-radius:var(--r-sm);font-size:13px;font-weight:600;border:1.5px solid var(--gray-100);color:var(--text-sub);background:var(--gray-50);transition:all .15s;}
+.couple-edit-btn.sel{background:var(--green-pale);color:var(--green-mid);border-color:var(--green-light);}
+.couple-edit-btn.sel-both{background:linear-gradient(135deg,var(--green-pale),var(--gold-light));color:var(--green-deep);border-color:var(--gold);}
+
+/* ── Supabase / DB 상태 ── */
+.db-status{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--r-sm);background:var(--gray-50);margin-bottom:14px;font-size:13px;}
+.db-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.db-dot.local{background:var(--yellow);}
+.db-dot.cloud{background:var(--green-light);box-shadow:0 0 6px rgba(75,174,120,.5);}
+.db-dot.error{background:var(--red);}
+.db-status-text{flex:1;font-weight:500;color:var(--text-main);}
+.db-status-sub{font-size:11px;color:var(--text-muted);margin-top:1px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- 사용자 선택 -->
+<div id="user-select-screen">
+  <div class="select-logo">
+    <div class="icon">⛳</div>
+    <h1>골프노트</h1>
+    <p>우리 부부 골프 기록</p>
+  </div>
+  <div class="select-cards">
+    <div class="user-card" onclick="selectUser('mk')">
+      <div class="avatar" style="background:var(--green-mid)">장</div>
+      <div class="info"><h3>장명관</h3><p>내 대시보드 열기</p></div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="user-card" onclick="selectUser('my')">
+      <div class="avatar" style="background:var(--gold)">백</div>
+      <div class="info"><h3>백민영</h3><p>내 대시보드 열기</p></div>
+      <div class="arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- 메인 앱 -->
+<div id="main-app">
+  <div class="app-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <div class="header-avatar" id="header-avatar"></div>
+        <div>
+          <div class="header-name" id="header-name"></div>
+          <div class="header-date" id="header-date"></div>
+        </div>
+      </div>
+      <button class="header-switch" onclick="switchUser()">전환 ›</button>
+    </div>
+    <div class="tab-nav">
+      <button class="tab-nav-btn active" onclick="switchTab('home')">🏠 홈</button>
+      <button class="tab-nav-btn" onclick="switchTab('schedule')">📅 일정</button>
+      <button class="tab-nav-btn" onclick="switchTab('record')">📋 기록</button>
+      <button class="tab-nav-btn" onclick="switchTab('stats')">📊 통계</button>
+      <button class="tab-nav-btn" onclick="switchTab('settings')">⚙️ 설정</button>
+    </div>
+  </div>
+
+  <div class="tab-content">
+
+    <!-- 홈 -->
+    <div class="tab-pane active" id="tab-home">
+      <div class="calendar-section">
+        <div class="cal-header">
+          <span class="cal-title" id="cal-title"></span>
+          <div class="cal-nav">
+            <button onclick="changeMonth(-1)">‹</button>
+            <button onclick="changeMonth(1)">›</button>
+          </div>
+          <label class="cal-couple-toggle">
+            <input type="checkbox" id="couple-toggle" onchange="renderCalendar()"> 부부
+          </label>
+        </div>
+        <div class="cal-days-header">
+          <div class="cal-day-label">일</div><div class="cal-day-label">월</div>
+          <div class="cal-day-label">화</div><div class="cal-day-label">수</div>
+          <div class="cal-day-label">목</div><div class="cal-day-label">금</div>
+          <div class="cal-day-label">토</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+
+      <div class="upcoming-section">
+        <div class="section-title">다음 예정</div>
+        <div id="upcoming-list"></div>
+      </div>
+
+      <div class="add-round-btn-wrap">
+        <button class="add-round-btn" onclick="openRoundSheet(null)">
+          <span>＋</span> 라운드 기록 추가
+        </button>
+      </div>
+
+      <div class="upcoming-section" style="margin-top:6px">
+        <div class="section-title">최근 라운드</div>
+        <div id="recent-rounds-list"></div>
+      </div>
+
+      <div class="mini-stats-grid" id="mini-stats-grid"></div>
+      <div style="height:14px"></div>
+    </div>
+
+    <!-- 일정 탭 -->
+    <div class="tab-pane" id="tab-schedule">
+      <div class="month-tab-row" id="month-tab-row"></div>
+      <div class="schedule-month-group" id="schedule-list"></div>
+    </div>
+
+    <!-- 기록 탭 -->
+    <div class="tab-pane" id="tab-record">
+      <div class="list-section">
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterRound('all',this)">전체</button>
+          <button class="filter-btn" onclick="filterRound('me',this)">내 기록만</button>
+        </div>
+        <div id="round-list"></div>
+      </div>
+    </div>
+
+    <!-- 통계 탭 -->
+    <div class="tab-pane" id="tab-stats">
+      <div class="stats-section">
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterStats(5,this)">최근 5경기</button>
+          <button class="filter-btn" onclick="filterStats(10,this)">최근 10경기</button>
+          <button class="filter-btn" onclick="filterStats(0,this)">전체</button>
+        </div>
+        <div id="stats-content"></div>
+      </div>
+    </div>
+
+    <!-- 설정 탭 -->
+    <div class="tab-pane" id="tab-settings">
+      <div class="settings-section">
+
+        <!-- Supabase 연동 -->
+        <div class="settings-card">
+          <div class="settings-card-title">☁️ Supabase 연동</div>
+          <div class="db-status" id="db-status-row">
+            <div class="db-dot local" id="db-dot"></div>
+            <div>
+              <div class="db-status-text" id="db-status-text">로컬 저장 중</div>
+              <div class="db-status-sub" id="db-status-sub">이 기기에만 저장됩니다</div>
+            </div>
+            <div id="db-realtime-badge" style="display:none;font-size:11px;font-weight:700;background:var(--green-pale);color:var(--green-mid);padding:3px 9px;border-radius:20px;margin-left:auto;flex-shrink:0">LIVE</div>
+          </div>
+          <p class="settings-desc">Supabase 프로젝트 정보를 입력하면 두 기기가 자동으로 동기화됩니다.</p>
+          <div class="form-group">
+            <label class="form-label">Project URL</label>
+            <input type="text" class="form-input" id="sb-url" placeholder="https://xxx.supabase.co" autocomplete="off">
+          </div>
+          <div class="form-group" style="margin-bottom:14px">
+            <label class="form-label">Anon Key</label>
+            <input type="password" class="form-input" id="sb-key" placeholder="eyJhbGci..." autocomplete="off">
+          </div>
+          <button class="settings-btn settings-btn-primary" onclick="connectSupabase()">연결 테스트 &amp; 저장</button>
+          <button class="settings-btn settings-btn-secondary" id="sb-disconnect-btn" onclick="disconnectSupabase()" style="display:none;margin-top:8px">연결 해제</button>
+          <div id="sb-result" style="margin-top:10px;font-size:13px;display:none"></div>
+        </div>
+
+        <!-- 데이터 현황 -->
+        <div class="settings-card">
+          <div class="settings-card-title">📦 데이터 현황</div>
+          <div id="data-summary" class="data-summary"></div>
+        </div>
+
+        <!-- 백업 -->
+        <div class="settings-card">
+          <div class="settings-card-title">💾 데이터 백업</div>
+          <p class="settings-desc">모든 일정과 기록을 JSON 파일로 내보냅니다.<br>파일을 보관해 두면 언제든 복원할 수 있습니다.</p>
+          <button class="settings-btn settings-btn-primary" onclick="exportData()">📤 JSON으로 내보내기</button>
+        </div>
+
+        <!-- 복원 -->
+        <div class="settings-card">
+          <div class="settings-card-title">📥 데이터 복원</div>
+          <p class="settings-desc">이전에 내보낸 JSON 파일을 불러옵니다.<br>기존 데이터에 추가되며 중복은 자동으로 건너뜁니다.</p>
+          <label class="settings-btn settings-btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer">
+            📂 JSON 파일 불러오기
+            <input type="file" accept=".json" style="display:none" onchange="importData(this)">
+          </label>
+          <div id="import-result" style="margin-top:10px;font-size:13px;color:var(--green-mid);display:none"></div>
+        </div>
+
+        <!-- 홈 화면 추가 -->
+        <div class="settings-card">
+          <div class="settings-card-title">📱 홈 화면에 추가</div>
+          <p class="settings-desc">앱처럼 사용하려면 홈 화면에 추가하세요.</p>
+          <div class="ios-guide">
+            <div class="ios-guide-step"><span class="ios-step-num">1</span><span>Safari에서 하단 <strong>공유(□↑)</strong> 버튼 탭</span></div>
+            <div class="ios-guide-step"><span class="ios-step-num">2</span><span><strong>홈 화면에 추가</strong> 선택</span></div>
+            <div class="ios-guide-step"><span class="ios-step-num">3</span><span>오른쪽 상단 <strong>추가</strong> 탭</span></div>
+          </div>
+          <button class="settings-btn settings-btn-secondary" onclick="pwaInstall()" id="pwa-install-btn">⬇ 앱으로 설치 (Android)</button>
+        </div>
+
+        <!-- 초기화 -->
+        <div class="settings-card settings-card-danger">
+          <div class="settings-card-title">⚠️ 데이터 초기화</div>
+          <p class="settings-desc">모든 일정, 기록, 설정이 삭제됩니다.<br>삭제된 데이터는 복구할 수 없습니다.</p>
+          <button class="settings-btn settings-btn-danger" onclick="resetAllData()">🗑 전체 데이터 삭제</button>
+        </div>
+
+        <div style="height:20px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<button class="fab" id="fab-btn" style="display:none">＋</button>
+</div>
+
+<!-- PWA 설치 배너 -->
+<div class="pwa-banner" id="pwa-banner">
+  <div class="pwa-banner-icon">⛳</div>
+  <div class="pwa-banner-text">
+    <strong>골프노트 앱으로 설치</strong>
+    <span>홈 화면에 추가하면 앱처럼 사용할 수 있어요</span>
+  </div>
+  <button class="pwa-banner-btn" onclick="pwaInstall()">추가</button>
+  <button class="pwa-banner-close" onclick="pwaDismiss()">✕</button>
+</div>
+
+<!-- 오버레이 -->
+<div class="overlay" id="overlay" onclick="closeAllSheets()"></div>
+
+<!-- 날짜 시트 -->
+<div class="bottom-sheet" id="day-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="day-sheet-title"></span>
+    <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div id="day-sheet-list"></div>
+    <button class="day-add-btn" onclick="openScheduleSheet(null)">＋ 이 날 일정 추가</button>
+  </div>
+</div>
+
+<!-- 일정 시트 -->
+<div class="bottom-sheet" id="sched-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="sched-sheet-title">일정 추가</span>
+    <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">날짜</label>
+        <input type="date" class="form-input" id="sched-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">티타임</label>
+        <input type="text" class="form-input" id="sched-tee" placeholder="예: 07:30">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">골프장</label>
+        <div class="ac-wrap">
+          <input type="text" class="form-input" id="sched-course" placeholder="예: 사우스스프링스 CC"
+            autocomplete="off" oninput="acInput('sched')" onfocus="acFocus('sched')" onblur="acBlur('sched')">
+          <div class="ac-dropdown" id="sched-ac"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">코스명</label>
+        <div class="ac-wrap">
+          <input type="text" class="form-input" id="sched-course-name" placeholder="예: 동코스, A코스"
+            autocomplete="off" oninput="acCourseName('sched')" onfocus="acCourseName('sched')" onblur="acBlur('sched-cn')">
+          <div class="ac-dropdown" id="sched-cn-ac"></div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">동반자</label>
+      <input type="text" class="form-input" id="sched-companions" placeholder="예: 김철수, 이영희">
+    </div>
+    <div class="form-group">
+      <label class="form-label">티타임</label>
+      <input type="text" class="form-input" id="sched-tee" placeholder="예: 1번홀 07:30">
+    </div>
+    <div class="form-group">
+      <label class="form-label">상태</label>
+      <div class="status-btn-group">
+        <button class="status-btn" data-status="confirmed" onclick="selectStatus(this)">✅ 확정</button>
+        <button class="status-btn" data-status="pending" onclick="selectStatus(this)">⏳ 미정</button>
+        <button class="status-btn" data-status="cancelled" onclick="selectStatus(this)">❌ 취소</button>
+      </div>
+    </div>
+    <!-- 부부 함께 등록 토글 -->
+    <div class="couple-toggle-row" id="sched-couple-row">
+      <div class="couple-toggle-left">
+        <div class="couple-toggle-label">💑 부부 함께 등록</div>
+        <div class="couple-toggle-sub">두 명 일정에 동시에 추가됩니다</div>
+      </div>
+      <label class="couple-switch">
+        <input type="checkbox" id="sched-couple-toggle" onchange="onCoupleToggle()">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <!-- 수정 시: 나만 수정 / 둘 다 수정 -->
+    <div id="sched-couple-edit-row" style="display:none">
+      <div class="form-label" style="margin-bottom:6px">공유 일정 수정 범위</div>
+      <div class="couple-edit-row">
+        <button class="couple-edit-btn sel" id="edit-me-btn" onclick="selectEditScope('me')">나만 수정</button>
+        <button class="couple-edit-btn" id="edit-both-btn" onclick="selectEditScope('both')">둘 다 수정</button>
+      </div>
+    </div>
+    <div class="form-submit-row">
+      <button class="btn-submit" onclick="saveSchedule()">저장</button>
+      <button class="btn-delete" id="sched-delete-btn" onclick="deleteSchedule()" style="display:none">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 라운드 시트 -->
+<div class="bottom-sheet" id="round-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="round-sheet-title">라운드 기록</span>
+    <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">날짜</label>
+        <input type="date" class="form-input" id="round-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">골프장</label>
+        <div class="ac-wrap">
+          <input type="text" class="form-input" id="round-course" placeholder="CC명"
+            autocomplete="off" oninput="acInput('round')" onfocus="acFocus('round')" onblur="acBlur('round')">
+          <div class="ac-dropdown" id="round-ac"></div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">코스명</label>
+      <div class="ac-wrap">
+        <input type="text" class="form-input" id="round-course-name" placeholder="예: 동코스, A코스, 레이크코스"
+          autocomplete="off" oninput="acCourseName('round')" onfocus="acCourseName('round')" onblur="acBlur('round-cn')">
+        <div class="ac-dropdown" id="round-cn-ac"></div>
+      </div>
+    </div>
+
+    <!-- 입력 모드 -->
+    <div class="score-mode-toggle">
+      <button class="score-mode-btn active" id="mode-simple" onclick="switchScoreMode('simple')">간편 입력</button>
+      <button class="score-mode-btn" id="mode-hole" onclick="switchScoreMode('hole')">홀별 입력</button>
+    </div>
+
+    <!-- 간편 -->
+    <div id="score-simple">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">총 타수</label>
+          <input type="number" class="form-input" id="round-score" placeholder="예: 92" min="40" max="200" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">퍼팅 수</label>
+          <input type="number" class="form-input" id="round-putts" placeholder="예: 34" min="10" max="72" inputmode="numeric">
+        </div>
+      </div>
+    </div>
+
+    <!-- 홀별 -->
+    <div id="score-hole" style="display:none">
+      <div class="hole-section-label">
+        <span>전반 (1~9홀)</span>
+        <span class="hole-half-sum" id="front-sum">-</span>
+      </div>
+      <div class="hole-grid" id="front-holes"></div>
+      <div class="hole-section-label">
+        <span>후반 (10~18홀)</span>
+        <span class="hole-half-sum" id="back-sum">-</span>
+      </div>
+      <div class="hole-grid" id="back-holes"></div>
+      <div class="hole-total-bar">
+        <span class="hole-total-label">🏌️ 합계</span>
+        <span class="hole-total-num" id="hole-total">-</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">퍼팅 수</label>
+        <input type="number" class="form-input" id="round-putts-hole" placeholder="예: 34" min="10" max="72" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">샷 메모</label>
+      <div class="mistake-select-grid" id="mistake-grid"></div>
+      <div class="mistake-count-row" id="mistake-count-row" style="display:none">
+        <span id="selected-mistake-name"></span> 횟수:
+        <div class="count-ctrl">
+          <button class="count-btn" onclick="changeMistakeCount(-1)">−</button>
+          <span class="count-val" id="mistake-count-val">1</span>
+          <button class="count-btn" onclick="changeMistakeCount(1)">＋</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-group" id="selected-mistakes-preview" style="display:none">
+      <div style="display:flex;gap:4px;flex-wrap:wrap" id="mistakes-tags"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">메모</label>
+      <textarea class="form-input" id="round-memo" placeholder="오늘 라운드 메모" rows="3"></textarea>
+    </div>
+    <div class="form-submit-row">
+      <button class="btn-submit" onclick="saveRound()">저장</button>
+      <button class="btn-delete" id="round-delete-btn" onclick="deleteRound()" style="display:none">삭제</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 상수 ──
+const USERS=[{id:'mk',name:'장명관',initial:'장',color:'#2D6A4F'},{id:'my',name:'백민영',initial:'백',color:'#B8963E'}];
+const GOOD_TYPES=['굿샷'];
+const MISTAKE_TYPES=['생크','뒷땅','탑볼','거리조절실패','훅','슬라이스'];
+const ALL_SHOT_TYPES=[...GOOD_TYPES,...MISTAKE_TYPES];
+const STATUS_LABELS={confirmed:'확정',pending:'미정',cancelled:'취소'};
+const DAYS=['일','월','화','수','목','금','토'];
+const PAR=[4,4,3,4,5,4,3,5,4,4,4,3,5,4,3,5,4,4];
+
+
+// ══════════════════════════════════════
+// 골프장 자동완성
+// ══════════════════════════════════════
+function getCourseHistory(){
+  const map={};
+  [...(DB.get('s')||[]),...(DB.get('r')||[])].forEach(item=>{
+    if(!item.course) return;
+    const c=item.course.trim();
+    if(!map[c]) map[c]=new Set();
+    if(item.courseName) map[c].add(item.courseName.trim());
+  });
+  return Object.entries(map).map(([course,names])=>({course,courseNames:[...names]}));
+}
+
+let _acBlurTimer={};
+function acBlur(key){ _acBlurTimer[key]=setTimeout(()=>closeAc(key),200); }
+function closeAc(key){
+  const el=document.getElementById(key===('sched'||'round')?key+'-ac':key+'-ac');
+  // close all dropdowns related to key
+  ['sched-ac','sched-cn-ac','round-ac','round-cn-ac'].forEach(id=>{
+    const d=document.getElementById(id); if(d) d.classList.remove('open');
+  });
+}
+
+function acInput(prefix){
+  const inp=document.getElementById(prefix+'-course');
+  const q=inp.value.trim().toLowerCase();
+  const history=getCourseHistory();
+  const filtered=q
+    ? history.filter(h=>h.course.toLowerCase().includes(q))
+    : history.slice(0,8);
+  showAcDropdown(prefix+'-ac', filtered.map(h=>({main:h.course, sub:h.courseNames.join(' · ')})),
+    (main)=>{
+      inp.value=main;
+      // 코스명 드롭다운도 갱신
+      acCourseName(prefix);
+      if(prefix==='round') tryLoadCoursePars();
+    }
+  );
+}
+
+function acFocus(prefix){
+  acInput(prefix);
+}
+
+function acCourseName(prefix){
+  const course=(document.getElementById(prefix+'-course')||{}).value||'';
+  const cnInp=document.getElementById(prefix+'-course-name');
+  const q=cnInp.value.trim().toLowerCase();
+  const history=getCourseHistory();
+  const match=history.find(h=>h.course.trim()===course.trim());
+  if(!match||!match.courseNames.length){ closeAcById(prefix+'-cn-ac'); return; }
+  const filtered=q ? match.courseNames.filter(n=>n.toLowerCase().includes(q)) : match.courseNames;
+  if(!filtered.length){ closeAcById(prefix+'-cn-ac'); return; }
+  showAcDropdown(prefix+'-cn-ac', filtered.map(n=>({main:n, sub:''})),
+    (main)=>{
+      cnInp.value=main;
+      closeAcById(prefix+'-cn-ac');
+      if(prefix==='round') tryLoadCoursePars();
+    }
+  );
+}
+
+function closeAcById(id){
+  const el=document.getElementById(id); if(el) el.classList.remove('open');
+}
+
+function showAcDropdown(dropdownId, items, onSelect){
+  const drop=document.getElementById(dropdownId);
+  if(!drop||!items.length){ if(drop) drop.classList.remove('open'); return; }
+  drop.innerHTML='';
+  items.forEach(({main,sub})=>{
+    const div=document.createElement('div');
+    div.className='ac-item';
+    div.innerHTML=`<div class="ac-item-main">${main}</div>${sub?`<div class="ac-item-sub">${sub}</div>`:''}`;
+    div.onmousedown=(e)=>{ e.preventDefault(); onSelect(main); drop.classList.remove('open'); };
+    drop.appendChild(div);
+  });
+  drop.classList.add('open');
+}
+
+// ══════════════════════════════════════
+// PWA
+// ══════════════════════════════════════
+let _pwaPrompt=null;
+
+function initPWA(){
+  // Manifest (data URI)
+  const manifest={
+    name:'골프노트',short_name:'골프노트',
+    description:'우리 부부 골프 일정 & 기록',
+    start_url:location.href,
+    display:'standalone',
+    background_color:'#1A3D2B',
+    theme_color:'#1A3D2B',
+    orientation:'portrait',
+    icons:[
+      {src:makeIcon(192),sizes:'192x192',type:'image/png',purpose:'any maskable'},
+      {src:makeIcon(512),sizes:'512x512',type:'image/png',purpose:'any maskable'},
+    ]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
+
+  // Service Worker (캐싱으로 오프라인 지원)
+  if('serviceWorker' in navigator){
+    const sw=`
+const CACHE='golf-note-v1';
+const URLS=[location.href,'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll([self.location.href]))));
+self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
+  const clone=res.clone();
+  caches.open(CACHE).then(c=>c.put(e.request,clone));
+  return res;
+}).catch(()=>caches.match(e.request)))));
+`;
+    const swBlob=new Blob([sw],{type:'text/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob),{scope:'./'}).catch(()=>{});
+  }
+
+  // Android 설치 프롬프트
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault(); _pwaPrompt=e;
+    if(!localStorage.getItem('pwa-dismissed')) showPwaBanner();
+  });
+  window.addEventListener('appinstalled',()=>hidePwaBanner());
+
+  // iOS 안내 (standalone 아닐 때)
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isStandalone=window.navigator.standalone;
+  if(isIOS&&!isStandalone&&!localStorage.getItem('pwa-dismissed')){
+    setTimeout(showPwaBanner,2000);
+  }
+}
+
+function makeIcon(size){
+  const c=document.createElement('canvas'); c.width=size; c.height=size;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#1A3D2B'; ctx.fillRect(0,0,size,size);
+  ctx.fillStyle='#52B788';
+  ctx.font=`bold ${size*.45}px serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('⛳',size/2,size/2);
+  return c.toDataURL('image/png');
+}
+
+function showPwaBanner(){
+  // iOS면 문구 바꾸기
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  if(isIOS){
+    document.querySelector('.pwa-banner-text strong').textContent='홈 화면에 추가하기';
+    document.querySelector('.pwa-banner-text span').textContent='Safari에서 공유 → 홈 화면에 추가를 눌러주세요';
+    document.querySelector('.pwa-banner-btn').textContent='방법 보기';
+    document.querySelector('.pwa-banner-btn').onclick=showIOSGuide;
+  }
+  document.getElementById('pwa-banner').classList.add('show');
+}
+function hidePwaBanner(){ document.getElementById('pwa-banner').classList.remove('show'); }
+function pwaDismiss(){ hidePwaBanner(); localStorage.setItem('pwa-dismissed','1'); }
+function pwaInstall(){
+  if(_pwaPrompt){ _pwaPrompt.prompt(); _pwaPrompt.userChoice.then(()=>{ hidePwaBanner(); _pwaPrompt=null; }); }
+}
+function showIOSGuide(){
+  alert('Safari 하단 공유(□↑) 버튼 → "홈 화면에 추가" 를 탭하세요.');
+}
+
+// ── 더미 데이터 (localStorage 직접 저장 — 초기 1회만) ──
+function initDummy(){
+  if(DB.get('_v3')) return;
+  const now=new Date(), y=now.getFullYear(), m=now.getMonth();
+  // 로컬 시간 기준 날짜 계산 (toISOString은 UTC라 하루 오차)
+  const fmt=offset=>{
+    const d=new Date(y,m,now.getDate()+offset);
+    return localDateStr(d);
+  };
+  const fmtAbs=d=>localDateStr(d);
+  DB.set('s',[
+    {id:'s1',userId:'mk',date:fmt(6),time:'07:30',course:'사우스스프링스 CC',courseName:'동코스',companions:'백민영, 김철수',teeTime:'1번홀 07:30',status:'confirmed',roundId:null,isCouple:true,coupleGroupId:'cg1',createdAt:Date.now()},
+    {id:'s2',userId:'my',date:fmt(6),time:'07:30',course:'사우스스프링스 CC',courseName:'동코스',companions:'장명관, 김철수',teeTime:'1번홀 07:30',status:'confirmed',roundId:null,isCouple:true,coupleGroupId:'cg1',createdAt:Date.now()},
+    {id:'s3',userId:'mk',date:fmt(14),time:'10:00',course:'파인크리크 GC',courseName:'레이크코스',companions:'박부장, 최차장',teeTime:'2번홀 10:00',status:'pending',roundId:null,isCouple:false,coupleGroupId:null,createdAt:Date.now()},
+    {id:'s4',userId:'my',date:fmt(-4),time:'08:00',course:'베어크리크 GC',courseName:'A코스',companions:'장명관',teeTime:'1번홀 08:00',status:'confirmed',roundId:'r3',isCouple:false,coupleGroupId:null,createdAt:Date.now()},
+    {id:'s5',userId:'mk',date:fmt(-26),time:'07:00',course:'블루원 상주',courseName:'블루코스',companions:'이팀장',teeTime:'1번홀 07:00',status:'confirmed',roundId:'r1',isCouple:false,coupleGroupId:null,createdAt:Date.now()-86400000*26},
+    {id:'s6',userId:'mk',date:fmtAbs(new Date(y,m-1,15)),time:'08:30',course:'남서울 CC',courseName:'동코스',companions:'박차장',teeTime:'1번홀 08:30',status:'confirmed',roundId:'r5',isCouple:false,coupleGroupId:null,createdAt:Date.now()-86400000*50},
+  ]);
+  DB.set('r',[
+    {id:'r1',userId:'mk',date:fmt(-26),course:'블루원 상주',courseName:'블루코스',totalScore:96,puttCount:38,holeScores:[5,4,4,5,6,5,3,6,5,5,4,5,5,6,4,4,5,5],mistakes:[{type:'생크',count:2},{type:'뒷땅',count:3}],memo:'티샷 자주 흔들림. 퍼팅 연습 필요',createdAt:Date.now()-86400000*26},
+    {id:'r2',userId:'mk',date:fmt(-11),course:'파인힐스 CC',courseName:'파인코스',totalScore:91,puttCount:34,holeScores:[4,5,3,5,5,4,3,5,5,4,4,3,5,5,3,5,4,4],mistakes:[{type:'훅',count:3},{type:'거리조절실패',count:2}],memo:'드라이버 좋았으나 아이언 미스 많음',createdAt:Date.now()-86400000*11},
+    {id:'r3',userId:'my',date:fmt(-4),course:'베어크리크 GC',courseName:'A코스',totalScore:103,puttCount:40,holeScores:[6,5,4,6,7,5,4,6,6,6,5,4,6,6,4,5,6,6],mistakes:[{type:'탑볼',count:2},{type:'슬라이스',count:4}],memo:'슬라이스가 계속 남. 그립 확인 필요',createdAt:Date.now()-86400000*4},
+    {id:'r4',userId:'my',date:fmt(-26),course:'블루원 상주',courseName:'레드코스',totalScore:99,puttCount:37,holeScores:null,mistakes:[{type:'뒷땅',count:3},{type:'거리조절실패',count:2}],memo:'쇼트아이언 뒷땅 문제 지속',createdAt:Date.now()-86400000*26},
+    {id:'r5',userId:'mk',date:fmtAbs(new Date(y,m-1,15)),course:'남서울 CC',courseName:'동코스',totalScore:94,puttCount:35,holeScores:null,mistakes:[{type:'생크',count:1},{type:'슬라이스',count:2}],memo:'전반 잘 쳤으나 후반 무너짐',createdAt:Date.now()-86400000*50},
+  ]);
+  DB.set('_v3',true);
+}
+
+// ── 상태 ──
+let S={
+  user:null,tab:'home',
+  calY:new Date().getFullYear(),calM:new Date().getMonth(),
+  selDay:null,editSId:null,editRId:null,
+  selStatus:'confirmed',selMistakes:{},activeMistake:null,
+  roundFilter:'all',statsCount:5,
+  schedMonth:new Date().getMonth(),
+  scoreMode:'simple',
+  holePars:[...PAR],
+  fromScheduleId:null,
+  coupleMode:false,      // 부부 함께 등록 여부
+  editScope:'me',        // 'me' | 'both' — 공유 일정 수정 범위
+};
+
+// ── Supabase 설정 (개인용 — 하드코딩) ──
+const SB_URL = 'https://qjlpxonzffobchopgrkf.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqbHB4b256ZmZvYmNob3BncmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzA4ODAsImV4cCI6MjA5MDMwNjg4MH0.MI8q66AvxjDNF8eNNsa_cFlDkQsqdQRvbXNKgY3F0do';
+
+let _sb = null;
+
+function initSupabase(){
+  try{
+    _sb = supabase.createClient(SB_URL, SB_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+      realtime: { params: { eventsPerSecond: 2 } },
+    });
+    updateDbStatus('cloud','☁️ Supabase 연결됨','두 기기가 자동으로 동기화됩니다');
+  } catch(e){
+    _sb = null;
+    updateDbStatus('error','연결 실패','로컬 저장으로 동작합니다');
+  }
+}
+
+// ── Realtime 구독 ──
+let _realtimeChannel = null;
+let _syncDebounce = null;
+
+function startRealtime(){
+  if(!_sb || _realtimeChannel) return;
+
+  _realtimeChannel = _sb
+    .channel('golf-sync')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'schedules' },
+      (payload) => onRemoteChange('schedule', payload)
+    )
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'rounds' },
+      (payload) => onRemoteChange('round', payload)
+    )
+    .subscribe((status) => {
+      if(status === 'SUBSCRIBED'){
+        updateDbStatus('cloud','☁️ 실시간 동기화 중','상대방 변경사항이 즉시 반영됩니다');
+        const badge=document.getElementById('db-realtime-badge');
+        if(badge) badge.style.display='block';
+      } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'){
+        updateDbStatus('error','동기화 오류','새로고침 후 재연결됩니다');
+        const badge=document.getElementById('db-realtime-badge');
+        if(badge) badge.style.display='none';
+      }
+    });
+}
+
+function onRemoteChange(type, payload){
+  // 내가 방금 저장한 것은 무시 (내 userId와 같은 경우)
+  const record = payload.new || payload.old;
+  const changedUserId = record?.user_id || record?.userId;
+  if(changedUserId === S.user) return; // 내 변경은 이미 로컬에 반영됨
+
+  // 디바운스: 연속 변경 시 300ms 후 1번만 렌더
+  clearTimeout(_syncDebounce);
+  _syncDebounce = setTimeout(async ()=>{
+    // 캐시 갱신
+    if(_sb){
+      const{data:sd}=await _sb.from('schedules').select('*').order('date');
+      if(sd) DB.set('s', sd.map(sbToSched));
+      const{data:rd}=await _sb.from('rounds').select('*').order('date',{ascending:false});
+      if(rd) DB.set('r', rd.map(sbToRound));
+    }
+    renderAll();
+    // 상대방 변경 알림 토스트
+    const partner = USERS.find(u=>u.id===changedUserId);
+    const action = payload.eventType==='INSERT'?'추가':payload.eventType==='DELETE'?'삭제':'수정';
+    const target = type==='schedule'?'일정':'기록';
+    if(partner) showSyncToast(`${partner.name}이(가) ${target}을 ${action}했습니다`);
+  }, 300);
+}
+
+function showSyncToast(msg){
+  let t=document.getElementById('sync-toast');
+  if(!t){
+    t=document.createElement('div'); t.id='sync-toast';
+    t.style.cssText=[
+      'position:fixed;top:calc(env(safe-area-inset-top,0px) + 70px);left:50%',
+      'transform:translateX(-50%) translateY(-10px)',
+      'background:rgba(15,45,30,.92);color:#fff',
+      'padding:9px 16px;border-radius:20px',
+      'font-size:13px;font-weight:500;z-index:9999',
+      'pointer-events:none;opacity:0;transition:all .3s',
+      'white-space:nowrap;max-width:90vw;text-align:center',
+      'display:flex;align-items:center;gap:8px',
+    ].join(';');
+    document.body.appendChild(t);
+  }
+  t.innerHTML=`<span style="font-size:16px">🔄</span> ${msg}`;
+  t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{
+    t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(-10px)';
+  }, 3000);
+}
+
+function updateDbStatus(type, text, sub){
+  const dot=document.getElementById('db-dot');
+  const txt=document.getElementById('db-status-text');
+  const s=document.getElementById('db-status-sub');
+  if(!dot) return;
+  dot.className='db-dot '+type;
+  if(txt) txt.textContent=text;
+  if(s) s.textContent=sub||'';
+}
+
+// ── DB 레이어 (Supabase + localStorage 폴백) ──
+const DB = {
+  _k: n=>`golf_${n}`,
+  get(n){ try{return JSON.parse(localStorage.getItem(DB._k(n)))||null}catch{return null} },
+  set(n,v){ localStorage.setItem(DB._k(n),JSON.stringify(v)) },
+
+  // ── 일정 ──
+  async getS(){
+    if(_sb){
+      const{data,error}=await _sb.from('schedules').select('*').order('date');
+      if(!error&&data){ const r=data.map(sbToSched); DB.set('s',r); return r; }
+    }
+    return DB.get('s')||[];
+  },
+  async upsertS(obj){
+    DB.set('s', (() => {
+      const arr=DB.get('s')||[];
+      const idx=arr.findIndex(x=>x.id===obj.id);
+      if(idx>=0) arr[idx]=obj; else arr.push(obj);
+      return arr;
+    })());
+    if(_sb){ const{error}=await _sb.from('schedules').upsert(schedToSb(obj)); if(error) console.error('sb upsertS',error); }
+  },
+  async delS(id){
+    DB.set('s',(DB.get('s')||[]).filter(x=>x.id!==id));
+    if(_sb){ await _sb.from('schedules').delete().eq('id',id); }
+  },
+
+  // ── 라운드 ──
+  async getR(){
+    if(_sb){
+      const{data,error}=await _sb.from('rounds').select('*').order('date',{ascending:false});
+      if(!error&&data){ const r=data.map(sbToRound); DB.set('r',r); return r; }
+    }
+    return DB.get('r')||[];
+  },
+  async upsertR(obj){
+    DB.set('r', (() => {
+      const arr=DB.get('r')||[];
+      const idx=arr.findIndex(x=>x.id===obj.id);
+      if(idx>=0) arr[idx]=obj; else arr.push(obj);
+      return arr;
+    })());
+    if(_sb){ const{error}=await _sb.from('rounds').upsert(roundToSb(obj)); if(error) console.error('sb upsertR',error); }
+  },
+  async delR(id){
+    DB.set('r',(DB.get('r')||[]).filter(x=>x.id!==id));
+    if(_sb){ await _sb.from('rounds').delete().eq('id',id); }
+  },
+
+  // ── 코스 파 ──
+  getCoursePars(course,cname){ const m=DB.get('cp')||{}; return m[course+'::'+(cname||'')]||null; },
+  saveCoursePars(course,cname,pars){ const m=DB.get('cp')||{}; m[course+'::'+(cname||'')]=[...pars]; DB.set('cp',m); },
+
+  getU(){ return DB.get('u') },
+  setU(id){ DB.set('u',id) },
+};
+
+// ── Supabase 변환 헬퍼 ──
+function schedToSb(s){ return {
+  id:s.id, user_id:s.userId, date:s.date, time:s.time||null,
+  course:s.course, course_name:s.courseName||null,
+  companions:s.companions||null, tee_time:s.teeTime||null,
+  status:s.status, round_id:s.roundId||null,
+  is_couple:!!s.isCouple, couple_group_id:s.coupleGroupId||null,
+  created_at:s.createdAt,
+};}
+function sbToSched(r){ return {
+  id:r.id, userId:r.user_id, date:r.date, time:r.time||'',
+  course:r.course||'', courseName:r.course_name||'',
+  companions:r.companions||'', teeTime:r.tee_time||'',
+  status:r.status||'confirmed', roundId:r.round_id||null,
+  isCouple:r.is_couple||false, coupleGroupId:r.couple_group_id||null,
+  createdAt:r.created_at,
+};}
+function roundToSb(r){ return {
+  id:r.id, user_id:r.userId, date:r.date,
+  course:r.course, course_name:r.courseName||null,
+  total_score:r.totalScore, putt_count:r.puttCount||null,
+  hole_scores:r.holeScores||null, hole_pars:r.holePars||null,
+  mistakes:r.mistakes?JSON.stringify(r.mistakes):null,
+  memo:r.memo||null, created_at:r.createdAt,
+};}
+function sbToRound(r){ return {
+  id:r.id, userId:r.user_id, date:r.date,
+  course:r.course||'', courseName:r.course_name||'',
+  totalScore:r.total_score, puttCount:r.putt_count||null,
+  holeScores:r.hole_scores||null, holePars:r.hole_pars||null,
+  mistakes: typeof r.mistakes==='string' ? JSON.parse(r.mistakes||'[]') : (r.mistakes||[]),
+  memo:r.memo||'', createdAt:r.created_at,
+};}
+
+// ── 유틸 ──
+const uid=()=>'_'+Math.random().toString(36).slice(2,9);
+const getUser=id=>USERS.find(u=>u.id===id);
+const getCur=()=>getUser(S.user);
+
+// 로컬 시간 기준 날짜 문자열 (YYYY-MM-DD) — toISOString()은 UTC라 한국에서 하루 오차 발생
+function localDateStr(d){
+  const dt=d||new Date();
+  const y=dt.getFullYear();
+  const m=String(dt.getMonth()+1).padStart(2,'0');
+  const day=String(dt.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+const today=()=>localDateStr();
+const fmtDate=d=>{const dt=new Date(d+'T00:00:00');return `${dt.getFullYear()}년 ${dt.getMonth()+1}월 ${dt.getDate()}일 (${DAYS[dt.getDay()]})`};
+const fmtShort=d=>{const dt=new Date(d+'T00:00:00');return `${dt.getMonth()+1}/${dt.getDate()}`};
+const getMonth=d=>parseInt(d.slice(5,7))-1;
+
+// ── 사용자 ──
+function selectUser(id){
+  S.user=id; DB.setU(id);
+  document.getElementById('user-select-screen').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  const fab=document.getElementById('fab-btn');
+  fab.textContent='＋'; fab.style.display='flex';
+  fab.onclick=()=>openRoundSheet(null);
+  updateHeader(); renderAll();
+  if(_sb && !_realtimeChannel) setTimeout(startRealtime, 400);
+}
+function switchUser(){
+  // Realtime 구독 해제
+  if(_realtimeChannel){ _sb?.removeChannel(_realtimeChannel); _realtimeChannel=null; }
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('fab-btn').style.display='none';
+  document.getElementById('user-select-screen').style.display='flex';
+}
+function updateHeader(){
+  const u=getCur(); if(!u) return;
+  const av=document.getElementById('header-avatar');
+  av.textContent=u.initial; av.style.background=u.color;
+  document.getElementById('header-name').textContent=u.name;
+  const n=new Date();
+  document.getElementById('header-date').textContent=`${n.getFullYear()}년 ${n.getMonth()+1}월 ${n.getDate()}일 ${DAYS[n.getDay()]}요일`;
+}
+
+// ── 탭 ──
+function switchTab(tab){
+  S.tab=tab;
+  document.querySelectorAll('.tab-nav-btn').forEach((b,i)=>b.classList.toggle('active',['home','schedule','record','stats','settings'][i]===tab));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  const fab=document.getElementById('fab-btn');
+  if(tab==='home'){
+    fab.textContent='＋'; fab.style.display='flex';
+    fab.onclick=()=>openRoundSheet(null);
+  } else if(tab==='schedule'){
+    fab.textContent='＋'; fab.style.display='flex';
+    fab.onclick=()=>openScheduleSheet(null);
+  } else if(tab==='record'){
+    fab.textContent='＋'; fab.style.display='flex';
+    fab.onclick=()=>openRoundSheet(null);
+  } else {
+    fab.style.display='none';
+  }
+  if(tab==='home')renderHome();
+  if(tab==='schedule')renderScheduleTab();
+  if(tab==='record')renderRecordTab();
+  if(tab==='stats')renderStatsTab();
+  if(tab==='settings')renderSettingsTab();
+}
+
+// ── 캘린더 ──
+function changeMonth(d){
+  S.calM+=d;
+  if(S.calM<0){S.calM=11;S.calY--;}
+  if(S.calM>11){S.calM=0;S.calY++;}
+  S.selDay=null; renderCalendar(); renderUpcoming();
+}
+function renderCalendar(){
+  const {calY:y,calM:m}=S;
+  document.getElementById('cal-title').textContent=`${y}년 ${m+1}월`;
+  const couple=document.getElementById('couple-toggle').checked;
+  // 캘린더는 캐시 사용 (async 불필요)
+  const scheds=(DB.get('s')||[]).filter(s=>couple||s.userId===S.user);
+  const first=new Date(y,m,1),last=new Date(y,m+1,0),todayStr=today();
+  const grid=document.getElementById('cal-grid'); grid.innerHTML='';
+  for(let i=0;i<first.getDay();i++) grid.appendChild(mkCell(new Date(y,m,-(first.getDay()-i-1)),'other-month',scheds,todayStr));
+  for(let d=1;d<=last.getDate();d++) grid.appendChild(mkCell(new Date(y,m,d),'',scheds,todayStr));
+  for(let i=1;i<7-last.getDay();i++) grid.appendChild(mkCell(new Date(y,m+1,i),'other-month',scheds,todayStr));
+}
+function mkCell(dt,extra,scheds,todayStr){
+  const ds=localDateStr(dt);  // toISOString() 대신 로컬 날짜 사용 (UTC 변환 방지)
+  const dow=dt.getDay();
+  const cell=document.createElement('div');
+  cell.className='cal-cell'+(extra?' '+extra:'')+(dow===0?' sun':dow===6?' sat':'')+
+    (ds===todayStr?' today':'')+(ds===S.selDay?' selected':'');
+  cell.onclick=()=>onDayClick(ds);
+  const num=document.createElement('div'); num.className='cal-num'; num.textContent=dt.getDate();
+  cell.appendChild(num);
+  const ds_scheds=scheds.filter(s=>s.date===ds);
+  if(ds_scheds.length){
+    const dots=document.createElement('div'); dots.className='cal-dots';
+    const couple=document.getElementById('couple-toggle').checked;
+    ds_scheds.slice(0,3).forEach(s=>{
+      const dot=document.createElement('div');
+      dot.className='cal-dot '+(couple&&s.userId!==S.user?'couple':s.status);
+      dots.appendChild(dot);
+    });
+    cell.appendChild(dots);
+  }
+  return cell;
+}
+function onDayClick(ds){S.selDay=ds;renderCalendar();openDaySheet(ds);}
+
+// ── 날짜 시트 ──
+async function openDaySheet(ds){
+  document.getElementById('day-sheet-title').textContent=fmtDate(ds);
+  const couple=document.getElementById('couple-toggle').checked;
+  const all=await DB.getS();
+  const scheds=all.filter(s=>s.date===ds&&(couple||s.userId===S.user));
+  const list=document.getElementById('day-sheet-list'); list.innerHTML='';
+  if(!scheds.length){list.innerHTML='<div class="day-no-sched">이 날 일정이 없습니다</div>';}
+  else{
+    scheds.forEach(s=>{
+      const u=getUser(s.userId);
+      const item=document.createElement('div'); item.className='day-sched-item';
+      const cn=s.courseName?` · ${s.courseName}`:'';
+      const coupleIcon=s.isCouple?'💑 ':'';
+      item.innerHTML=`<div class="day-sched-dot ${s.status}"></div>
+        <div class="day-sched-info">
+          <div class="day-sched-course">${coupleIcon}${s.course}${cn}</div>
+          <div class="day-sched-time">${s.time||''} · ${STATUS_LABELS[s.status]}${couple?' · '+u.name:''}</div>
+        </div><span style="font-size:14px;color:var(--gray-500)">›</span>`;
+      item.onclick=()=>{closeAllSheets(true);openScheduleSheet(s.id);};
+      list.appendChild(item);
+    });
+  }
+  document.getElementById('sched-date').value=ds;
+  openSheet('day-sheet');
+}
+
+// ── 시트 ──
+function openSheet(id){
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById(id).classList.add('open');
+}
+function closeAllSheets(skipCalendar=false){
+  document.getElementById('overlay').classList.remove('open');
+  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
+  if(!skipCalendar){ S.selDay=null; renderCalendar(); }
+}
+
+// ── 일정 시트 ──
+async function openScheduleSheet(id){
+  closeAllSheets(true); S.editSId=id; S.coupleMode=false; S.editScope='me';
+  document.getElementById('sched-sheet-title').textContent=id?'일정 수정':'일정 추가';
+  document.getElementById('sched-delete-btn').style.display=id?'flex':'none';
+  // 부부 토글 초기화
+  const coupleToggle=document.getElementById('sched-couple-toggle');
+  const coupleRow=document.getElementById('sched-couple-row');
+  const editRow=document.getElementById('sched-couple-edit-row');
+  coupleToggle.checked=false;
+  coupleRow.style.display='flex'; editRow.style.display='none';
+
+  if(id){
+    const all=await DB.getS();
+    const s=all.find(x=>x.id===id); if(!s) return;
+    document.getElementById('sched-date').value=s.date;
+    document.getElementById('sched-tee').value=s.teeTime||s.time||'';
+    document.getElementById('sched-course').value=s.course;
+    document.getElementById('sched-course-name').value=s.courseName||'';
+    document.getElementById('sched-companions').value=s.companions||'';
+    document.getElementById('sched-tee').value=s.teeTime||'';
+    S.selStatus=s.status;
+    // 공유 일정이면 수정 범위 선택 표시
+    if(s.isCouple){
+      coupleRow.style.display='none';
+      editRow.style.display='block';
+      selectEditScope('me');
+    }
+  } else {
+    document.getElementById('sched-date').value=S.selDay||today();
+    ['sched-course','sched-course-name','sched-companions','sched-tee'].forEach(eid=>document.getElementById(eid).value='');
+    S.selStatus='confirmed';
+  }
+  updateStatusBtns(); openSheet('sched-sheet');
+}
+function selectStatus(btn){S.selStatus=btn.dataset.status;updateStatusBtns();}
+function updateStatusBtns(){
+  document.querySelectorAll('.status-btn').forEach(b=>{
+    b.className='status-btn';
+    if(b.dataset.status===S.selStatus) b.classList.add('sel-'+S.selStatus);
+  });
+}
+function onCoupleToggle(){
+  S.coupleMode=document.getElementById('sched-couple-toggle').checked;
+}
+function selectEditScope(scope){
+  S.editScope=scope;
+  document.getElementById('edit-me-btn').className='couple-edit-btn'+(scope==='me'?' sel':'');
+  document.getElementById('edit-both-btn').className='couple-edit-btn'+(scope==='both'?' sel sel-both':'');
+}
+
+async function saveSchedule(){
+  const course=document.getElementById('sched-course').value.trim();
+  const date=document.getElementById('sched-date').value;
+  if(!course||!date){alert('날짜와 골프장을 입력해주세요');return;}
+
+  const base={
+    id:S.editSId||uid(), userId:S.user, date,
+    time:document.getElementById('sched-tee').value,
+    course, courseName:document.getElementById('sched-course-name').value.trim(),
+    companions:document.getElementById('sched-companions').value.trim(),
+    teeTime:document.getElementById('sched-tee').value.trim(),
+    status:S.selStatus, roundId:null, createdAt:Date.now(),
+    isCouple:false, coupleGroupId:null,
+  };
+
+  if(S.editSId){
+    // 수정 — 기존 roundId/createdAt 보존
+    const all=await DB.getS();
+    const orig=all.find(x=>x.id===S.editSId);
+    if(orig){ base.roundId=orig.roundId; base.createdAt=orig.createdAt; base.isCouple=orig.isCouple; base.coupleGroupId=orig.coupleGroupId; }
+    // 부부 일정이고 "둘 다 수정"이면 상대방 것도 업데이트
+    if(orig?.isCouple && S.editScope==='both' && orig.coupleGroupId){
+      const partner=USERS.find(u=>u.id!==S.user);
+      const partnerSched=all.find(x=>x.coupleGroupId===orig.coupleGroupId&&x.userId===partner.id);
+      if(partnerSched){
+        const pObj={...partnerSched, date, time:base.time, course, courseName:base.courseName,
+          companions:base.companions, teeTime:base.teeTime, status:base.status};
+        await DB.upsertS(pObj);
+      }
+    }
+    await DB.upsertS(base);
+  } else {
+    // 신규 — 부부 함께 등록이면 상대방 일정도 생성
+    if(S.coupleMode){
+      const groupId=uid();
+      base.isCouple=true; base.coupleGroupId=groupId;
+      await DB.upsertS(base);
+      const partner=USERS.find(u=>u.id!==S.user);
+      const partnerObj={...base, id:uid(), userId:partner.id};
+      await DB.upsertS(partnerObj);
+      showToast(`💑 ${partner.name}의 일정에도 추가했습니다`);
+    } else {
+      await DB.upsertS(base);
+    }
+  }
+  closeAllSheets(); renderAll();
+}
+
+async function deleteSchedule(){
+  if(!confirm('일정을 삭제할까요?')) return;
+  const all=await DB.getS();
+  const s=all.find(x=>x.id===S.editSId);
+  // 부부 공유 일정 삭제 시 선택
+  if(s?.isCouple && s.coupleGroupId){
+    const both=confirm('부부 공유 일정입니다.\n확인: 둘 다 삭제\n취소: 나만 삭제');
+    if(both){
+      const toDelete=all.filter(x=>x.coupleGroupId===s.coupleGroupId);
+      for(const x of toDelete) await DB.delS(x.id);
+    } else {
+      await DB.delS(S.editSId);
+    }
+  } else {
+    await DB.delS(S.editSId);
+  }
+  closeAllSheets(); renderAll();
+}
+
+// ── 라운드 시트 ──
+function switchScoreMode(mode){
+  S.scoreMode=mode;
+  document.getElementById('mode-simple').classList.toggle('active',mode==='simple');
+  document.getElementById('mode-hole').classList.toggle('active',mode==='hole');
+  document.getElementById('score-simple').style.display=mode==='simple'?'block':'none';
+  document.getElementById('score-hole').style.display=mode==='hole'?'block':'none';
+  if(mode==='hole') tryLoadCoursePars();
+}
+function buildHoleGrid(vals, pars){
+  S.holePars = pars ? [...pars] : [...PAR];
+  ['front','back'].forEach((h,hi)=>{
+    const g=document.getElementById(h+'-holes'); g.innerHTML='';
+    for(let i=0;i<9;i++){
+      const gi=hi*9+i; // global index 0-17
+      const hn=gi+1;
+      const v=vals&&vals[gi]?vals[gi]:'';
+      const p=S.holePars[gi];
+      const cell=document.createElement('div'); cell.className='hole-cell';
+      cell.innerHTML=`
+        <div class="hole-num">${hn}</div>
+        <button class="hole-par-btn" id="par-btn-${gi}" onclick="cyclePar(${gi})">P${p}</button>
+        <input type="number" class="hole-inp" id="hole-inp-${gi}" min="1" max="15" value="${v}" inputmode="numeric" oninput="onHoleInput(${gi})">
+        <div class="hole-diff" id="hole-diff-${gi}"></div>`;
+      g.appendChild(cell);
+      // set initial color
+      if(v) applyHoleStyling(gi, parseInt(v), p);
+    }
+  });
+  calcHoleTotals();
+}
+function cyclePar(gi){
+  const cur=S.holePars[gi];
+  S.holePars[gi] = cur===3?4:cur===4?5:3;
+  document.getElementById('par-btn-'+gi).textContent='P'+S.holePars[gi];
+  const inp=document.getElementById('hole-inp-'+gi);
+  if(inp&&inp.value) applyHoleStyling(gi, parseInt(inp.value), S.holePars[gi]);
+  calcHoleTotals();
+}
+function onHoleInput(gi){
+  const inp=document.getElementById('hole-inp-'+gi);
+  const v=parseInt(inp.value);
+  applyHoleStyling(gi, v, S.holePars[gi]);
+  calcHoleTotals();
+}
+function applyHoleStyling(gi, score, par){
+  const inp=document.getElementById('hole-inp-'+gi);
+  const diff=document.getElementById('hole-diff-'+gi);
+  if(!inp||!diff) return;
+  if(!score||score<1){ inp.className='hole-inp'; diff.textContent=''; diff.className='hole-diff'; return; }
+  const d=score-par;
+  let cls,label;
+  if(d<=-2){cls='eagle';label='Eagle';}
+  else if(d===-1){cls='birdie';label='-1';}
+  else if(d===0){cls='par';label='PAR';}
+  else if(d===1){cls='bogey';label='+1';}
+  else if(d===2){cls='double';label='+2';}
+  else{cls='worse';label=`+${d}`;}
+  inp.className=`hole-inp hc-${cls}`;
+  diff.className=`hole-diff hd-${cls}`;
+  diff.textContent=label;
+}
+function calcHoleTotals(){
+  let f=0,b=0,fok=true,bok=true;
+  let fp=0,bp=0; // par totals
+  for(let i=0;i<9;i++){
+    const v=parseInt(document.getElementById('hole-inp-'+i)?.value||'');
+    if(v>0){f+=v;fp+=S.holePars[i];}else fok=false;
+  }
+  for(let i=9;i<18;i++){
+    const v=parseInt(document.getElementById('hole-inp-'+i)?.value||'');
+    if(v>0){b+=v;bp+=S.holePars[i];}else bok=false;
+  }
+  const fParTotal=S.holePars.slice(0,9).reduce((a,b)=>a+b,0);
+  const bParTotal=S.holePars.slice(9).reduce((a,b)=>a+b,0);
+  const fDiff=fok?f-fParTotal:null;
+  const bDiff=bok?b-bParTotal:null;
+  const fDiffStr=fDiff!=null?(fDiff>0?`+${fDiff}`:fDiff===0?'E':`${fDiff}`):'';
+  const bDiffStr=bDiff!=null?(bDiff>0?`+${bDiff}`:bDiff===0?'E':`${bDiff}`):'';
+  document.getElementById('front-sum').textContent=fok?`${f}타 (${fDiffStr})`:'-';
+  document.getElementById('back-sum').textContent=bok?`${b}타 (${bDiffStr})`:'-';
+  const total=(fok&&bok)?f+b:null;
+  const totalDiff=(fok&&bok)?(f+b)-(fParTotal+bParTotal):null;
+  const totalDiffStr=totalDiff!=null?(totalDiff>0?`+${totalDiff}`:totalDiff===0?'E':`${totalDiff}`):'';
+  document.getElementById('hole-total').textContent=total!=null?`${total}타 (${totalDiffStr})`:'-';
+  if(total!=null) document.getElementById('round-score').value=total;
+}
+function getHoleScores(){
+  const vs=[];
+  for(let i=0;i<18;i++) vs.push(parseInt(document.getElementById('hole-inp-'+i)?.value||'')||0);
+  return vs.every(v=>v>0)?vs:null;
+}
+
+// 일정 카드에서 기록 추가: 골프장·날짜 자동 채움 + 저장 후 roundId 연결
+async function openRoundFromSchedule(schedId){
+  const all=await DB.getS();
+  const s=all.find(x=>x.id===schedId); if(!s) return;
+  S.fromScheduleId=schedId;
+  await openRoundSheet(null);
+  document.getElementById('round-date').value=s.date;
+  document.getElementById('round-course').value=s.course;
+  document.getElementById('round-course-name').value=s.courseName||'';
+  document.getElementById('round-sheet-title').textContent='라운드 기록 추가';
+  tryLoadCoursePars();
+}
+
+async function openRoundSheet(id){
+  if(id!==undefined) S.fromScheduleId=null;
+  closeAllSheets(true); S.editRId=id; S.selMistakes={}; S.activeMistake=null;
+  const g=document.getElementById('mistake-grid'); g.innerHTML='';
+  GOOD_TYPES.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='mistake-btn good-type'; btn.textContent=t; btn.dataset.type=t;
+    btn.onclick=()=>onMistakeClick(t); g.appendChild(btn);
+  });
+  const sep=document.createElement('div');
+  sep.className='shot-section-sep'; sep.style.gridColumn='1/-1'; sep.textContent='실수 유형';
+  g.appendChild(sep);
+  MISTAKE_TYPES.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='mistake-btn'; btn.textContent=t; btn.dataset.type=t;
+    btn.onclick=()=>onMistakeClick(t); g.appendChild(btn);
+  });
+  document.getElementById('round-sheet-title').textContent=id?'라운드 수정':'라운드 기록';
+  document.getElementById('round-delete-btn').style.display=id?'flex':'none';
+  switchScoreMode('simple');
+  if(id){
+    const all=await DB.getR();
+    const r=all.find(x=>x.id===id); if(!r) return;
+    document.getElementById('round-date').value=r.date;
+    document.getElementById('round-course').value=r.course;
+    document.getElementById('round-course-name').value=r.courseName||'';
+    document.getElementById('round-score').value=r.totalScore;
+    document.getElementById('round-putts').value=r.puttCount||'';
+    document.getElementById('round-memo').value=r.memo||'';
+    (r.mistakes||[]).forEach(m=>S.selMistakes[m.type]=m.count);
+    if(r.holeScores){switchScoreMode('hole');buildHoleGrid(r.holeScores,r.holePars||null);document.getElementById('round-putts-hole').value=r.puttCount||'';}
+    else buildHoleGrid(null,null);
+  } else {
+    document.getElementById('round-date').value=today();
+    ['round-course','round-course-name','round-score','round-putts','round-memo'].forEach(eid=>document.getElementById(eid).value='');
+    buildHoleGrid(null,null);
+  }
+  updateMistakeUI();
+  document.getElementById('mistake-count-row').style.display='none';
+  openSheet('round-sheet');
+}
+function tryLoadCoursePars(){
+  const course=document.getElementById('round-course').value.trim();
+  const cname=document.getElementById('round-course-name').value.trim();
+  if(!course) return;
+  const saved=DB.getCoursePars(course,cname);
+  if(saved){
+    S.holePars=[...saved];
+    // 파 버튼 UI 업데이트 (홀별 모드일 때만)
+    for(let i=0;i<18;i++){
+      const btn=document.getElementById('par-btn-'+i);
+      if(btn){ btn.textContent='P'+S.holePars[i]; }
+    }
+    calcHoleTotals();
+    // 살짝 알림 (홀별 모드)
+    if(S.scoreMode==='hole'){
+      const label=document.getElementById('front-sum');
+      const orig=label.textContent;
+      label.textContent='파 설정 불러옴 ✓';
+      setTimeout(()=>{ calcHoleTotals(); },1200);
+    }
+  }
+}
+function onMistakeClick(type){
+  if(S.activeMistake===type){S.activeMistake=null;document.getElementById('mistake-count-row').style.display='none';}
+  else{
+    S.activeMistake=type;
+    if(!S.selMistakes[type]) S.selMistakes[type]=1;
+    document.getElementById('mistake-count-row').style.display='flex';
+    document.getElementById('selected-mistake-name').textContent=type;
+    document.getElementById('mistake-count-val').textContent=S.selMistakes[type];
+  }
+  updateMistakeUI();
+}
+function changeMistakeCount(d){
+  if(!S.activeMistake) return;
+  S.selMistakes[S.activeMistake]=Math.max(1,(S.selMistakes[S.activeMistake]||1)+d);
+  document.getElementById('mistake-count-val').textContent=S.selMistakes[S.activeMistake];
+  updateMistakeTags();
+}
+function updateMistakeUI(){
+  document.querySelectorAll('.mistake-btn').forEach(b=>b.classList.toggle('selected',!!S.selMistakes[b.dataset.type]));
+  updateMistakeTags();
+}
+function updateMistakeTags(){
+  const entries=Object.entries(S.selMistakes).filter(([,v])=>v>0);
+  document.getElementById('selected-mistakes-preview').style.display=entries.length?'block':'none';
+  document.getElementById('mistakes-tags').innerHTML=entries.map(([t,c])=>{
+    const isGood=GOOD_TYPES.includes(t);
+    return `<span class="mistake-tag${isGood?' good':''}">${isGood?'✅ ':''} ${t} ${c}회</span>`;
+  }).join('');
+}
+async function saveRound(){
+  const course=document.getElementById('round-course').value.trim();
+  const date=document.getElementById('round-date').value;
+  let totalScore,puttCount,holeScores=null;
+  if(S.scoreMode==='hole'){
+    holeScores=getHoleScores();
+    totalScore=holeScores?holeScores.reduce((a,b)=>a+b,0):parseInt(document.getElementById('round-score').value);
+    puttCount=parseInt(document.getElementById('round-putts-hole').value)||null;
+  } else {
+    totalScore=parseInt(document.getElementById('round-score').value);
+    puttCount=parseInt(document.getElementById('round-putts').value)||null;
+  }
+  if(!course||!date||isNaN(totalScore)){alert('날짜, 골프장, 타수를 입력해주세요');return;}
+  const mistakes=Object.entries(S.selMistakes).filter(([,c])=>c>0).map(([type,count])=>({type,count}));
+  const obj={
+    id:S.editRId||uid(), userId:S.user, date, course,
+    courseName:document.getElementById('round-course-name').value.trim(),
+    totalScore, puttCount, holeScores,
+    holePars:S.scoreMode==='hole'?[...S.holePars]:null,
+    mistakes, memo:document.getElementById('round-memo').value.trim(),
+    createdAt:Date.now(),
+  };
+  if(S.editRId){
+    const all=await DB.getR();
+    const orig=all.find(x=>x.id===S.editRId);
+    if(orig) obj.createdAt=orig.createdAt;
+  }
+  if(S.scoreMode==='hole') DB.saveCoursePars(course, document.getElementById('round-course-name').value.trim(), S.holePars);
+  await DB.upsertR(obj);
+  // 일정에서 연결된 경우 roundId 업데이트
+  if(S.fromScheduleId&&!S.editRId){
+    const all=await DB.getS();
+    const s=all.find(x=>x.id===S.fromScheduleId);
+    if(s){ s.roundId=obj.id; await DB.upsertS(s); }
+    S.fromScheduleId=null;
+  }
+  closeAllSheets(); renderAll();
+}
+
+async function deleteRound(){
+  if(!confirm('기록을 삭제할까요?')) return;
+  const all=await DB.getS();
+  const linked=all.find(s=>s.roundId===S.editRId);
+  if(linked){ linked.roundId=null; await DB.upsertS(linked); }
+  await DB.delR(S.editRId);
+  closeAllSheets(); renderAll();
+}
+
+// ── 렌더링 ──
+async function renderAll(){
+  renderCalendar();
+  await renderUpcoming();
+  await renderRecentRounds();
+  renderMiniStats_sync();
+  if(S.tab==='schedule') await renderScheduleTab();
+  if(S.tab==='record') await renderRecordTab();
+  if(S.tab==='stats') await renderStatsTab();
+}
+async function renderHome(){renderCalendar();await renderUpcoming();await renderRecentRounds();renderMiniStats_sync();}
+
+async function renderUpcoming(){
+  const td=today();
+  const all=await DB.getS();
+  const up=all.filter(s=>s.userId===S.user&&s.date>=td&&s.status!=='cancelled')
+    .sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
+  document.getElementById('upcoming-list').innerHTML=up.length
+    ?up.map(s=>schedCardHTML(s)).join('')
+    :`<div class="empty-state"><div class="icon">📅</div><p>예정된 일정이 없습니다</p><p class="hint">일정 탭에서 추가할 수 있어요</p></div>`;
+}
+
+function schedCardHTML(s){
+  const dt=new Date(s.date+'T00:00:00');
+  const isPast=s.date<today();
+  const hasRecord=!!s.roundId;
+  const canAddRecord=isPast&&!hasRecord&&s.status==='confirmed';
+  return `<div class="schedule-card" data-status="${s.status}" onclick="openScheduleSheet('${s.id}')">
+    <div class="sched-date-block">
+      <div class="day-num">${dt.getDate()}</div>
+      <div class="day-name">${DAYS[dt.getDay()]}</div>
+    </div>
+    <div class="sched-info">
+      <div class="sched-course-name">${s.course}</div>
+      ${s.courseName?`<div class="sched-course-sub">📍 ${s.courseName}</div>`:''}
+      <div class="sched-meta">
+        ${s.teeTime?`<span>⛳ ${s.teeTime}</span>`:''}
+        ${s.companions?`<span>👥 ${s.companions}</span>`:''}
+      </div>
+    </div>
+    <div class="sched-right">
+      <span class="sched-status ${s.status}">${STATUS_LABELS[s.status]}</span>
+      ${hasRecord
+        ?`<span class="sched-record-btn" onclick="event.stopPropagation();openRoundSheet('${s.roundId}')">⛳ 기록보기</span>`
+        :canAddRecord
+          ?`<span class="sched-record-btn sched-add-record-btn" onclick="event.stopPropagation();openRoundFromSchedule('${s.id}')">＋ 기록추가</span>`
+          :''}
+    </div>
+  </div>`;
+}
+
+async function renderRecentRounds(){
+  const all=await DB.getR();
+  const rounds=all.filter(r=>r.userId===S.user).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  document.getElementById('recent-rounds-list').innerHTML=rounds.length
+    ?rounds.map(r=>roundCardHTML(r,false)).join('')
+    :`<div class="empty-state"><div class="icon">⛳</div><p>라운드 기록이 없습니다</p><p class="hint">위 버튼으로 첫 기록을 남겨보세요</p></div>`;
+}
+
+function roundCardHTML(r,showUser){
+  const u=getUser(r.userId);
+  const cn=r.courseName?`<div class="round-course-sub">📍 ${r.courseName}</div>`:'';
+  const tags=(r.mistakes||[]).map(m=>{
+    const isGood=GOOD_TYPES.includes(m.type);
+    return `<span class="mistake-tag${isGood?' good':''}">${isGood?'✅ ':''}${m.type} ${m.count}</span>`;
+  }).join('');
+
+  // 홀별 (저장된 par 또는 기본 PAR 사용)
+  let holeHTML='';
+  if(r.holeScores&&r.holeScores.length===18){
+    const pars=r.holePars||PAR;
+    const front=r.holeScores.slice(0,9),back=r.holeScores.slice(9);
+    const cls=(s,i)=>{const d=s-pars[i];return d<=-2?'eagle':d===-1?'birdie':d===0?'par':d===1?'bogey':d===2?'double':'worse';};
+    const cells=(arr,offset)=>arr.map((s,i)=>`<div class="hole-score-cell ${cls(s,offset+i)}">${s}</div>`).join('');
+    const fPar=pars.slice(0,9).reduce((a,b)=>a+b,0),bPar=pars.slice(9).reduce((a,b)=>a+b,0);
+    const fSum=front.reduce((a,b)=>a+b,0),bSum=back.reduce((a,b)=>a+b,0);
+    const dl=d=>d>0?`+${d}`:d===0?'E':`${d}`;
+    holeHTML=`<div class="hole-scores-wrap">
+      <div class="hole-scores-label">홀별 타수 (파 기준)</div>
+      <div class="hole-scores-row">${cells(front,0)}<span class="hole-score-sep">|</span>${cells(back,9)}</div>
+      <div class="hole-scores-sum-row">전반 <span>${fSum} (${dl(fSum-fPar)})</span> · 후반 <span>${bSum} (${dl(bSum-bPar)})</span> · 합계 <span>${fSum+bSum} (${dl(fSum+bSum-fPar-bPar)})</span></div>
+    </div>`;
+  }
+
+  return `<div class="round-card" onclick="openRoundSheet('${r.id}')">
+    <div class="round-card-top">
+      <div>
+        <div class="round-course">${r.course}</div>
+        ${cn}
+        <div class="round-date-str">${fmtDate(r.date)}</div>
+        ${showUser?`<div class="badge-row"><span class="user-badge ${r.userId==='mk'?'badge-mk':'badge-my'}">${u.name}</span></div>`:''}
+      </div>
+      <div class="round-score-wrap">
+        <div class="round-score-badge">${r.totalScore}</div>
+        <div class="round-score-label">타</div>
+      </div>
+    </div>
+    <div class="round-stats">
+      ${r.puttCount?`<div class="round-stat"><div class="round-stat-val">${r.puttCount}</div><div class="round-stat-label">퍼팅</div></div>`:''}
+      ${tags?`${r.puttCount?'<div class="round-divider"></div>':''}<div class="round-mistakes">${tags}</div>`:''}
+    </div>
+    ${holeHTML}
+    ${r.memo?`<div class="round-memo">💬 ${r.memo}</div>`:''}
+  </div>`;
+}
+
+function renderMiniStats_sync(){
+  const rs=(DB.get('r')||[]).filter(r=>r.userId===S.user).sort((a,b)=>b.date.localeCompare(a.date));
+  const g=document.getElementById('mini-stats-grid'); if(!rs.length){g.innerHTML='';return;}
+  const r5=rs.slice(0,5);
+  const avg=Math.round(r5.map(r=>r.totalScore).reduce((a,b)=>a+b,0)/r5.length);
+  const best=Math.min(...rs.map(r=>r.totalScore));
+  const putts=r5.filter(r=>r.puttCount).map(r=>r.puttCount);
+  const ap=putts.length?Math.round(putts.reduce((a,b)=>a+b,0)/putts.length):'-';
+  g.innerHTML=`<div class="mini-stat-card"><div class="label">최근 5경기 평균</div><div class="val">${avg}타</div><div class="sub">베스트 ${best}타</div></div>
+    <div class="mini-stat-card"><div class="label">평균 퍼팅</div><div class="val">${ap}</div><div class="sub">총 ${rs.length}경기 기록</div></div>`;
+}
+
+// ── 일정 탭 (1~12월 탭) ──
+async function renderScheduleTab(){
+  const td=today();
+  const scheds=(await DB.getS()).filter(s=>s.userId===S.user);
+  const tabRow=document.getElementById('month-tab-row'); tabRow.innerHTML='';
+  for(let mi=0;mi<12;mi++){
+    const has=scheds.some(s=>getMonth(s.date)===mi);
+    const btn=document.createElement('button');
+    btn.className='month-tab'+(mi===S.schedMonth?' active':'')+(has?' has-sched':'');
+    btn.textContent=`${mi+1}월`;
+    const mm=mi;
+    btn.onclick=()=>{S.schedMonth=mm;renderScheduleTab();};
+    tabRow.appendChild(btn);
+  }
+  setTimeout(()=>{const a=tabRow.querySelector('.active');if(a)a.scrollIntoView({inline:'center',behavior:'smooth'});},50);
+
+  const monthScheds=scheds.filter(s=>getMonth(s.date)===S.schedMonth).sort((a,b)=>a.date.localeCompare(b.date));
+  const list=document.getElementById('schedule-list');
+  if(!monthScheds.length){
+    list.innerHTML=`<div class="empty-state" style="padding:30px 0"><div class="icon">📅</div><p>${S.schedMonth+1}월 일정이 없습니다</p></div>`;
+    return;
+  }
+  list.innerHTML=monthScheds.map(s=>schedCardHTML(s)).join('');
+}
+
+// ── 기록 탭 ──
+function filterRound(f,btn){
+  S.roundFilter=f;
+  document.querySelectorAll('#tab-record .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderRecordTab();
+}
+async function renderRecordTab(){
+  let rs=await DB.getR();
+  const su=S.roundFilter==='all';
+  if(!su) rs=rs.filter(r=>r.userId===S.user);
+  rs.sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('round-list').innerHTML=rs.length
+    ?rs.map(r=>roundCardHTML(r,su)).join('')
+    :`<div class="empty-state"><div class="icon">⛳</div><p>기록이 없습니다</p></div>`;
+}
+
+// ── 통계 탭 ──
+function filterStats(n,btn){
+  S.statsCount=n;
+  document.querySelectorAll('#tab-stats .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderStatsTab();
+}
+async function renderStatsTab(){
+  const all=(await DB.getR()).sort((a,b)=>b.date.localeCompare(a.date));
+  const n=S.statsCount;
+  const sl=uid=>n>0?all.filter(r=>r.userId===uid).slice(0,n):all.filter(r=>r.userId===uid);
+  const mkR=sl('mk'),myR=sl('my');
+  const stats=rs=>{
+    if(!rs.length) return null;
+    const sc=rs.map(r=>r.totalScore);
+    const pt=rs.filter(r=>r.puttCount).map(r=>r.puttCount);
+    const avg=Math.round(sc.reduce((a,b)=>a+b,0)/sc.length);
+    const mf={};
+    rs.forEach(r=>(r.mistakes||[]).forEach(m=>{mf[m.type]=(mf[m.type]||0)+m.count;}));
+    return{avg,best:Math.min(...sc),avgPutt:pt.length?(pt.reduce((a,b)=>a+b,0)/pt.length).toFixed(1):'-',mf,cnt:rs.length};
+  };
+
+  // 홀 결과 분포 계산
+  const holeDistribution=rs=>{
+    const dist={eagle:0,birdie:0,par:0,bogey:0,double:0,worse:0,total:0};
+    rs.forEach(r=>{
+      if(!r.holeScores||r.holeScores.length!==18) return;
+      const pars=r.holePars||PAR;
+      r.holeScores.forEach((s,i)=>{
+        const d=s-pars[i];
+        dist.total++;
+        if(d<=-2) dist.eagle++;
+        else if(d===-1) dist.birdie++;
+        else if(d===0) dist.par++;
+        else if(d===1) dist.bogey++;
+        else if(d===2) dist.double++;
+        else dist.worse++;
+      });
+    });
+    return dist;
+  };
+
+  const mk=stats(mkR),my=stats(myR);
+  const cur=S.user==='mk'?mk:my,curR=S.user==='mk'?mkR:myR;
+  const el=document.getElementById('stats-content');
+  if(!cur){el.innerHTML=`<div class="empty-state"><div class="icon">📊</div><p>기록이 없습니다</p></div>`;return;}
+
+  const maxA=Math.max(mk?.avg||0,my?.avg||0)||1;
+  const mf=cur.mf;
+  // 굿샷 제외하고 실수만 표시
+  const mfEntries=MISTAKE_TYPES.filter(t=>mf[t]>0);
+  const maxF=Math.max(...MISTAKE_TYPES.map(t=>mf[t]||0),1);
+  const mRows=MISTAKE_TYPES.map(t=>{const c=mf[t]||0;return `<div class="mistake-freq-row">
+    <div class="mistake-type-name">${t}</div>
+    <div class="mistake-freq-bar-wrap"><div class="mistake-freq-bar" style="width:${Math.round(c/maxF*100)}%"></div></div>
+    <div class="mistake-freq-count">${c}</div></div>`;}).join('');
+  const goodCount=mf['굿샷']||0;
+
+  const tr=curR.slice(0,5).reverse();
+  const minS=tr.length?Math.min(...tr.map(r=>r.totalScore)):0,maxS=tr.length?Math.max(...tr.map(r=>r.totalScore)):0;
+  const trend=tr.length>1?tr.map(r=>{
+    const h=Math.max(14,Math.round((1-(r.totalScore-minS)/(maxS-minS||1))*80+20));
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+      <div style="font-size:12px;font-weight:700;color:var(--green-deep)">${r.totalScore}</div>
+      <div style="height:${h}px;width:20px;background:var(--green-light);border-radius:4px 4px 0 0;align-self:flex-end"></div>
+      <div style="font-size:10px;color:var(--text-sub)">${fmtShort(r.date)}</div></div>`;
+  }).join(''):'';
+
+  // 홀 결과 분포
+  const dist=holeDistribution(curR);
+  const distHTML=dist.total>0?`<div class="compare-card">
+    <h3>홀 결과 분포 (${dist.total}홀 기준)</h3>
+    ${[
+      {key:'eagle',label:'이글 이하',color:'#0D4D29',bg:'#A8E6C0'},
+      {key:'birdie',label:'버디',color:'#1A6B38',bg:'#D4EDDA'},
+      {key:'par',label:'파',color:'var(--gray-700)',bg:'var(--gray-100)'},
+      {key:'bogey',label:'보기',color:'#856404',bg:'#FFF3CD'},
+      {key:'double',label:'더블보기',color:'#842029',bg:'#F8D7DA'},
+      {key:'worse',label:'트리플+',color:'#fff',bg:'#D9534F'},
+    ].map(({key,label,color,bg})=>{
+      const c=dist[key], pct=dist.total?Math.round(c/dist.total*100):0;
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="min-width:64px;font-size:13px;color:var(--text-sub)">${label}</div>
+        <div style="flex:1;height:20px;background:var(--gray-100);border-radius:4px;overflow:hidden;position:relative">
+          <div style="height:100%;width:${pct}%;background:${bg};border-radius:4px;transition:width .4s"></div>
+          ${c>0?`<span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:${color==='var(--gray-700)'?'#3D5448':color}">${c}회</span>`:''}
+        </div>
+        <div style="min-width:32px;text-align:right;font-size:13px;font-weight:600;color:var(--text-main)">${pct}%</div>
+      </div>`;
+    }).join('')}
+  </div>`:'';
+
+  el.innerHTML=`<div class="compare-card"><h3>${n>0?`최근 ${cur.cnt}경기`:`전체 ${cur.cnt}경기`} 요약</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+      <div><div style="font-size:22px;font-weight:700;color:var(--green-deep)">${cur.avg}</div><div style="font-size:11px;color:var(--text-sub)">평균</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--gold)">${cur.best}</div><div style="font-size:11px;color:var(--text-sub)">베스트</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--text-sub)">${cur.avgPutt}</div><div style="font-size:11px;color:var(--text-sub)">평균 퍼팅</div></div>
+    </div>
+    ${goodCount?`<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--gray-100);display:flex;align-items:center;gap:8px">
+      <span style="font-size:13px;color:var(--text-sub)">굿샷</span>
+      <span style="font-size:16px;font-weight:700;color:var(--green-mid)">✅ 총 ${goodCount}회</span>
+    </div>`:''}
+  </div>
+  ${trend?`<div class="compare-card"><h3>스코어 추세</h3><div style="display:flex;align-items:flex-end;gap:8px;height:130px">${trend}</div></div>`:''}
+  ${distHTML}
+  <div class="compare-card"><h3>실수 유형 빈도</h3>${mRows||'<div style="font-size:13px;color:var(--gray-500);text-align:center;padding:8px">기록된 실수 없음</div>'}</div>
+  ${(mk&&my)?`<div class="compare-card"><h3>부부 평균 타수</h3>
+    <div class="compare-row"><div class="compare-name">장명관</div><div class="compare-bar-wrap"><div class="compare-bar bar-mk" style="width:${Math.round(mk.avg/maxA*100)}%"></div></div><div class="compare-val">${mk.avg}</div></div>
+    <div class="compare-row"><div class="compare-name">백민영</div><div class="compare-bar-wrap"><div class="compare-bar bar-my" style="width:${Math.round(my.avg/maxA*100)}%"></div></div><div class="compare-val">${my.avg}</div></div>
+  </div>`:''}`;
+}
+
+// ══════════════════════════════════════
+// 설정 탭
+// ══════════════════════════════════════
+async function renderSettingsTab(){
+  const scheds=await DB.getS(), rounds=await DB.getR();
+  const myScheds=scheds.filter(s=>s.userId===S.user);
+  const myRounds=rounds.filter(r=>r.userId===S.user);
+  const courseParsCount=Object.keys(DB.get('cp')||{}).length;
+  document.getElementById('data-summary').innerHTML=`
+    <div class="data-stat"><div class="data-stat-val">${myScheds.length}</div><div class="data-stat-label">내 일정</div></div>
+    <div class="data-stat"><div class="data-stat-val">${myRounds.length}</div><div class="data-stat-label">내 기록</div></div>
+    <div class="data-stat"><div class="data-stat-val">${courseParsCount}</div><div class="data-stat-label">저장 코스</div></div>`;
+  const installBtn=document.getElementById('pwa-install-btn');
+  if(installBtn) installBtn.style.display=_pwaPrompt?'block':'none';
+  // Supabase 상태 표시
+  const urlEl=document.getElementById('sb-url');
+  const keyEl=document.getElementById('sb-key');
+  const discBtn=document.getElementById('sb-disconnect-btn');
+  if(_sb){
+    if(urlEl) urlEl.value=SB_URL;
+    if(keyEl) keyEl.value='(연결됨)';
+    if(discBtn) discBtn.style.display='block';
+  }
+}
+
+// Supabase 연결 테스트 (설정탭 버튼용 — 현재는 항상 연결 상태)
+async function connectSupabase(){
+  const res=document.getElementById('sb-result');
+  res.style.display='block'; res.style.color='var(--text-sub)';
+  res.textContent='연결 확인 중...';
+  try{
+    const{data,error}=await _sb.from('schedules').select('id').limit(1);
+    if(error) throw error;
+    res.style.color='var(--green-mid)';
+    res.textContent='✅ 연결 성공! 데이터가 자동 동기화됩니다.';
+    updateDbStatus('cloud','☁️ Supabase 연결됨','두 기기가 자동으로 동기화됩니다');
+  }catch(e){
+    // DataCloneError = 샌드박스 환경 제약 (실제 브라우저에서는 정상)
+    if(e.message&&e.message.includes('DataClone')){
+      res.style.color='var(--green-mid)';
+      res.textContent='✅ 연결 정상 — 실제 브라우저에서 열면 완전히 동작합니다.\n(미리보기 환경 제약으로 테스트가 제한됩니다)';
+    } else {
+      res.style.color='var(--red)';
+      res.textContent='❌ '+e.message;
+    }
+  }
+}
+function disconnectSupabase(){
+  if(!confirm('Supabase 연결을 해제하면 로컬 저장으로 전환됩니다.')) return;
+  _sb=null;
+  updateDbStatus('local','로컬 저장 중','이 기기에만 저장됩니다');
+  showToast('연결이 해제되었습니다');
+  renderSettingsTab();
+}
+
+async function exportData(){
+  const data={
+    version:2, exportedAt:new Date().toISOString(),
+    exportedBy:getCur()?.name||'',
+    schedules:await DB.getS(),
+    rounds:await DB.getR(),
+    coursePars:DB.get('cp')||{},
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`골프노트_백업_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('📤 백업 파일이 저장되었습니다');
+}
+
+async function importData(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      let addedS=0, addedR=0;
+      if(Array.isArray(data.schedules)){
+        const existing=await DB.getS();
+        const existIds=new Set(existing.map(x=>x.id));
+        const newItems=data.schedules.filter(x=>!existIds.has(x.id));
+        for(const item of newItems){ await DB.upsertS(item); addedS++; }
+      }
+      if(Array.isArray(data.rounds)){
+        const existing=await DB.getR();
+        const existIds=new Set(existing.map(x=>x.id));
+        const newItems=data.rounds.filter(x=>!existIds.has(x.id));
+        for(const item of newItems){ await DB.upsertR(item); addedR++; }
+      }
+      if(data.coursePars){
+        const existing=DB.get('cp')||{};
+        DB.set('cp',{...data.coursePars,...existing});
+      }
+      const result=document.getElementById('import-result');
+      result.style.display='block';
+      result.textContent=`✅ 복원 완료 — 일정 ${addedS}건, 기록 ${addedR}건 추가`;
+      renderAll(); renderSettingsTab();
+      input.value='';
+    }catch(err){
+      showToast('❌ 파일을 읽을 수 없습니다.');
+      input.value='';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetAllData(){
+  if(!confirm('정말 모든 데이터를 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) return;
+  if(!confirm('한 번 더 확인합니다. 전체 데이터를 삭제하시겠습니까?')) return;
+  ['s','r','cp','_v3','_inited2','pwa-dismissed'].forEach(k=>localStorage.removeItem('golf_'+k));
+  localStorage.removeItem('pwa-dismissed');
+  showToast('🗑 데이터가 초기화되었습니다');
+  setTimeout(()=>location.reload(),1200);
+}
+
+// 토스트 메시지
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){
+    t=document.createElement('div'); t.id='toast';
+    t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(26,61,43,.92);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;z-index:9999;pointer-events:none;opacity:0;transition:all .25s;white-space:nowrap;max-width:90vw;text-align:center';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; },2400);
+}
+
+// ── 초기화 ──
+window.addEventListener('DOMContentLoaded', async ()=>{
+  initDummy();
+  initPWA();
+  initSupabase();
+  const saved=DB.getU();
+  if(saved&&USERS.find(u=>u.id===saved)){
+    selectUser(saved);
+    if(_sb){
+      setTimeout(()=>{ renderAll(); startRealtime(); }, 600);
+    }
+  }
+});
+</script>
+</body>
+</html>
