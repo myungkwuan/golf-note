@@ -2429,9 +2429,23 @@ async function openRoundDetail(id){
         ${memo?`<div style="font-size:13px;color:var(--text-sub);margin-top:4px">💬 ${memo}</div>`:''}
       </div>`;
     }).filter(Boolean).join('');
-    if(rows) holeMemoHTML=`<div class="detail-section">
+  if(rows) holeMemoHTML=`<div class="detail-section">
       <div class="detail-section-title">홀별 메모</div>
-      ${rows}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        ${r.holeScores.map((_,i)=>{
+          const hm=r.holeMistakes?r.holeMistakes[i]||[]:[];
+          const memo=r.holeMemos?r.holeMemos[i]||'':'';
+          if(!hm.length&&!memo) return '';
+          const goods=hm.filter(t=>GOOD_TYPES.includes(t));
+          const mistakes=hm.filter(t=>!GOOD_TYPES.includes(t));
+          return `<div style="background:var(--gray-50);border-radius:var(--r-sm);padding:10px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-sub);margin-bottom:6px">${i+1}홀 · P${pars[i]} · ${r.holeScores[i]}타 <span style="color:${r.holeScores[i]-pars[i]>0?'var(--text-muted)':'var(--green-rich)'}">(${dl(r.holeScores[i]-pars[i])})</span></div>
+            ${goods.length?`<div style="margin-bottom:4px;display:flex;flex-wrap:wrap;gap:3px">${goods.map(t=>`<span class="mistake-tag good" style="font-size:11px">✅ ${t}</span>`).join('')}</div>`:''}
+            ${mistakes.length?`<div style="margin-bottom:4px;display:flex;flex-wrap:wrap;gap:3px">${mistakes.map(t=>`<span class="mistake-tag" style="font-size:11px">${t}</span>`).join('')}</div>`:''}
+            ${memo?`<div style="font-size:12px;color:var(--text-sub);margin-top:2px">💬 ${memo}</div>`:''}
+          </div>`;
+        }).filter(Boolean).join('')}
+      </div>
     </div>`;
   }
 
