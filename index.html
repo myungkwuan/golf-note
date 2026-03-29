@@ -1458,7 +1458,15 @@ const DB = {
   async getS(){
     if(_sb){
       const{data,error}=await _sb.from('schedules').select('*').order('date');
-      if(!error&&data){ const r=data.map(sbToSched); DB.set('s',r); return r; }
+      if(!error&&data){
+        const sbScheds=data.map(sbToSched);
+        const local=DB.get('s')||[];
+        const sbIds=new Set(sbScheds.map(s=>s.id));
+        const localOnly=local.filter(s=>!sbIds.has(s.id));
+        const merged=[...sbScheds,...localOnly];
+        DB.set('s',merged);
+        return merged;
+      }
     }
     return DB.get('s')||[];
   },
@@ -1480,18 +1488,33 @@ const DB = {
   async getR(){
     if(_sb){
       const{data,error}=await _sb.from('rounds').select('*').order('date',{ascending:false});
-      if(!error&&data){ const r=data.map(sbToRound); DB.set('r',r); return r; }
+      if(!error&&data){
+        const sbRounds=data.map(sbToRound);
+        // 로컬에만 있는 기록(Supabase에 아직 없는 것) 보존
+        const local=DB.get('r')||[];
+        const sbIds=new Set(sbRounds.map(r=>r.id));
+        const localOnly=local.filter(r=>!sbIds.has(r.id));
+        const merged=[...sbRounds,...localOnly];
+        DB.set('r',merged);
+        return merged;
+      }
     }
     return DB.get('r')||[];
   },
   async upsertR(obj){
+    // 로컬 먼저
     DB.set('r', (() => {
       const arr=DB.get('r')||[];
       const idx=arr.findIndex(x=>x.id===obj.id);
       if(idx>=0) arr[idx]=obj; else arr.push(obj);
       return arr;
     })());
-    if(_sb){ const{error}=await _sb.from('rounds').upsert(roundToSb(obj)); if(error) console.error('sb upsertR',error); }
+    if(_sb){
+      // Supabase에 없는 컬럼은 제외하고 전송
+      const sbObj=roundToSb(obj);
+      const{error}=await _sb.from('rounds').upsert(sbObj);
+      if(error) console.error('sb upsertR',error.message);
+    }
   },
   async delR(id){
     DB.set('r',(DB.get('r')||[]).filter(x=>x.id!==id));
@@ -1531,9 +1554,8 @@ function roundToSb(r){ return {
   total_score:r.totalScore, putt_count:r.puttCount||null,
   hole_scores:r.holeScores||null, hole_pars:r.holePars||null,
   mistakes:r.mistakes?JSON.stringify(r.mistakes):null,
-  hole_mistakes:r.holeMistakes?JSON.stringify(r.holeMistakes):null,
-  hole_memos:r.holeMemos?JSON.stringify(r.holeMemos):null,
   memo:r.memo||null, created_at:r.createdAt,
+  // hole_mistakes, hole_memos는 Supabase 컬럼 추가 후 활성화
 };}
 function sbToRound(r){ return {
   id:r.id, userId:r.user_id, date:r.date,
@@ -2008,6 +2030,15 @@ function getHoleScores(){
   for(let i=0;i<18;i++) vs.push(parseInt(document.getElementById('hole-inp-'+i)?.value||'')||0);
   return vs.every(v=>v>0)?vs:null;
 }
+function getHoleScoresPartial(){
+  // 입력된 홀만 합산 (빈 홀 제외)
+  let sum=0;
+  for(let i=0;i<18;i++){
+    const v=parseInt(document.getElementById('hole-inp-'+i)?.value||'')||0;
+    if(v>0) sum+=v;
+  }
+  return sum;
+}
 
 // 일정 카드에서 기록 추가: 골프장·날짜 자동 채움 + 저장 후 roundId 연결
 async function openRoundFromSchedule(schedId){
@@ -2126,14 +2157,19 @@ async function saveRound(){
   const date=document.getElementById('round-date').value;
   let totalScore,puttCount,holeScores=null;
   if(S.scoreMode==='hole'){
-    holeScores=getHoleScores();
-    totalScore=holeScores?holeScores.reduce((a,b)=>a+b,0):parseInt(document.getElementById('round-score').value);
+    holeScores=getHoleScores(); // 18홀 전부 입력된 경우만
+    // 일부만 입력됐어도 합계 계산
+    const partialSum=getHoleScoresPartial();
+    const manualScore=parseInt(document.getElementById('round-score').value);
+    totalScore=holeScores
+      ? holeScores.reduce((a,b)=>a+b,0)
+      : (partialSum>0 ? partialSum : manualScore);
     puttCount=parseInt(document.getElementById('round-putts-hole').value)||null;
   } else {
     totalScore=parseInt(document.getElementById('round-score').value);
     puttCount=parseInt(document.getElementById('round-putts').value)||null;
   }
-  if(!course||!date||isNaN(totalScore)){alert('날짜, 골프장, 타수를 입력해주세요');return;}
+  if(!course||!date||isNaN(totalScore)||totalScore<1){alert('날짜, 골프장, 타수를 입력해주세요');return;}
   // 현재 열린 홀 데이터 저장
   saveCurrentHoleData();
   const mistakes=Object.entries(S.selMistakes).filter(([,c])=>c>0).map(([type,count])=>({type,count}));
@@ -2153,7 +2189,16 @@ async function saveRound(){
     if(orig) obj.createdAt=orig.createdAt;
   }
   if(S.scoreMode==='hole') DB.saveCoursePars(course, document.getElementById('round-course-name').value.trim(), S.holePars);
-  await DB.upsertR(obj);
+  try{
+    await DB.upsertR(obj);
+  }catch(e){
+    console.error('저장 오류',e);
+    // 로컬에라도 저장
+    const arr=DB.get('r')||[];
+    const idx=arr.findIndex(x=>x.id===obj.id);
+    if(idx>=0) arr[idx]=obj; else arr.push(obj);
+    DB.set('r',arr);
+  }
   // 일정에서 연결된 경우 roundId 업데이트
   if(S.fromScheduleId&&!S.editRId){
     const all=await DB.getS();
