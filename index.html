@@ -168,14 +168,20 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .cal-cell.sun .cal-num{color:var(--red)}
 .cal-cell.sat .cal-num{color:var(--green-rich)}
 .cal-cell.other-month .cal-num{color:var(--gray-200)}
-.cal-dots{display:flex;gap:2px;margin-top:2px}
+.cal-dots{display:flex;gap:2px;margin-top:2px;flex-wrap:wrap;justify-content:center}
 .cal-dot{width:5px;height:5px;border-radius:50%}
 .cal-dot.confirmed{background:var(--green-light)}
 .cal-dot.pending{background:var(--yellow)}
 .cal-dot.cancelled{background:var(--gray-300)}
 .cal-dot.couple{background:var(--gold)}
 .cal-dot.solo{background:var(--green-light)}
-.cal-dot.join{background:#7B61FF}  /* 조인플레이 — 보라색 */
+.cal-dot.join{background:#7B61FF}
+/* 캘린더 일정 라벨 */
+.cal-label{font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;line-height:1.4;white-space:nowrap}
+.cal-label.join{background:#EDE9FF;color:#5B3FD4}
+.cal-label.solo{background:var(--green-pale);color:var(--green-mid)}
+.cal-label.pending{background:var(--gold-light);color:var(--gold-dim)}
+.cal-label.cancelled{background:var(--gray-100);color:var(--gray-500)}
 
 /* ── 섹션 타이틀 ── */
 .upcoming-section{padding:16px 14px 0}
@@ -476,6 +482,48 @@ textarea.form-input{resize:none;min-height:72px}
 .empty-state .hint{font-size:12px;color:var(--gray-300);margin-top:6px}
 .past-label{font-size:11px;color:var(--gray-500);font-style:italic}
 
+/* 기록 상세보기 오버레이 */
+.detail-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.detail-overlay.open{opacity:1;pointer-events:all;}
+.detail-card{
+  background:var(--white);border-radius:var(--r-xl) var(--r-xl) 0 0;
+  width:100%;max-height:88vh;overflow-y:auto;
+  padding:0 0 env(safe-area-inset-bottom,24px);
+  transform:translateY(30px);transition:transform .3s cubic-bezier(.32,.72,0,1);
+}
+.detail-overlay.open .detail-card{transform:translateY(0);}
+.detail-card-handle{width:36px;height:4px;background:var(--gray-200);border-radius:2px;margin:12px auto 0;}
+.detail-card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px 12px;border-bottom:1px solid var(--gray-100);
+}
+.detail-card-title{font-size:17px;font-weight:700;color:var(--text-main)}
+.detail-card-close{
+  width:32px;height:32px;border-radius:50%;background:var(--gray-100);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:var(--text-sub);
+}
+.detail-card-body{padding:20px;}
+.detail-row{display:flex;gap:8px;margin-bottom:14px;align-items:flex-start;}
+.detail-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.detail-label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:3px;}
+.detail-value{font-size:15px;font-weight:600;color:var(--text-main);}
+.detail-sub{font-size:12px;color:var(--text-sub);}
+.detail-hole-grid{display:flex;gap:3px;flex-wrap:wrap;margin-top:8px;}
+.detail-section{background:var(--gray-50);border-radius:var(--r-sm);padding:14px;margin-bottom:12px;}
+.detail-section-title{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.8px;margin-bottom:10px;}
+.detail-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;}
+.detail-stat-val{font-size:22px;font-weight:900;color:var(--green-deep);letter-spacing:-1px;}
+.detail-stat-label{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.detail-action-row{display:flex;gap:8px;padding:0 20px 8px;}
+.detail-action-btn{flex:1;padding:13px;border-radius:var(--r-md);font-size:14px;font-weight:700;text-align:center;}
+.detail-action-edit{background:var(--green-deep);color:#fff;}
+.detail-action-del{background:var(--gray-100);color:var(--red);}
+
 /* 자동완성 */
 .ac-wrap{position:relative}
 .ac-dropdown{
@@ -750,6 +798,22 @@ textarea.form-input{resize:none;min-height:72px}
   </div>
   <button class="pwa-banner-btn" onclick="pwaInstall()">추가</button>
   <button class="pwa-banner-close" onclick="pwaDismiss()">✕</button>
+</div>
+
+<!-- 기록 상세보기 오버레이 -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetailOverlay(event)">
+  <div class="detail-card" id="detail-card">
+    <div class="detail-card-handle"></div>
+    <div class="detail-card-header">
+      <div class="detail-card-title" id="detail-title"></div>
+      <button class="detail-card-close" onclick="closeDetailOverlay()">✕</button>
+    </div>
+    <div class="detail-card-body" id="detail-body"></div>
+    <div class="detail-action-row">
+      <button class="detail-action-btn detail-action-edit" id="detail-edit-btn">✏️ 수정</button>
+      <button class="detail-action-btn detail-action-del" id="detail-del-btn">🗑 삭제</button>
+    </div>
+  </div>
 </div>
 
 <!-- 오버레이 -->
@@ -1400,7 +1464,7 @@ function selectUser(id){
   document.getElementById('main-app').style.display='flex';
   const fab=document.getElementById('fab-btn');
   fab.textContent='＋'; fab.style.display='flex';
-  fab.onclick=()=>openRoundSheet(null);
+  fab.onclick=()=>openScheduleSheet(null);
   updateHeader(); renderAll();
   if(_sb && !_realtimeChannel) setTimeout(startRealtime, 400);
 }
@@ -1429,7 +1493,7 @@ function switchTab(tab){
   const fab=document.getElementById('fab-btn');
   if(tab==='home'){
     fab.textContent='＋'; fab.style.display='flex';
-    fab.onclick=()=>openRoundSheet(null);
+    fab.onclick=()=>openScheduleSheet(null);
   } else if(tab==='schedule'){
     fab.textContent='＋'; fab.style.display='flex';
     fab.onclick=()=>openScheduleSheet(null);
@@ -1476,20 +1540,20 @@ function mkCell(dt,extra,scheds,todayStr){
   cell.appendChild(num);
   const ds_scheds=scheds.filter(s=>s.date===ds);
   if(ds_scheds.length){
-    const dots=document.createElement('div'); dots.className='cal-dots';
+    const labels=document.createElement('div'); labels.className='cal-dots';
     const couple=document.getElementById('couple-toggle').checked;
-    ds_scheds.slice(0,3).forEach(s=>{
-      const dot=document.createElement('div');
-      // 도트 색상: 취소=회색, 미정=노랑, 조인=보라, 단독=초록, 부부=골드
-      let dotClass;
-      if(s.status==='cancelled') dotClass='cancelled';
-      else if(s.status==='pending') dotClass='pending';
-      else if(couple&&s.userId!==S.user) dotClass='couple';
-      else dotClass=s.playType==='solo'?'solo':'join';
-      dot.className='cal-dot '+dotClass;
-      dots.appendChild(dot);
+    ds_scheds.slice(0,2).forEach(s=>{
+      const lbl=document.createElement('div');
+      let cls,txt;
+      if(s.status==='cancelled'){cls='cancelled';txt='취소';}
+      else if(s.status==='pending'){cls='pending';txt='미정';}
+      else if(couple&&s.userId!==S.user){cls='join';txt='부부';}
+      else{cls=s.playType==='solo'?'solo':'join';txt=s.playType==='solo'?'단독':'조인';}
+      lbl.className='cal-label '+cls;
+      lbl.textContent=txt;
+      labels.appendChild(lbl);
     });
-    cell.appendChild(dots);
+    cell.appendChild(labels);
   }
   return cell;
 }
@@ -1932,7 +1996,7 @@ function schedCardHTML(s){
   const dt=new Date(s.date+'T00:00:00');
   const isPast=s.date<today();
   const hasRecord=!!s.roundId;
-  const canAddRecord=isPast&&!hasRecord&&s.status==='confirmed';
+  const showRecordBtn=s.status==='confirmed';
   return `<div class="schedule-card" data-status="${s.status}" onclick="openScheduleSheet('${s.id}')">
     <div class="sched-date-block">
       <div class="day-num">${dt.getDate()}</div>
@@ -1953,16 +2017,83 @@ function schedCardHTML(s){
     </div>
     <div class="sched-right">
       <span class="sched-status ${s.status}">${STATUS_LABELS[s.status]}</span>
-      ${hasRecord
-        ?`<span class="sched-record-btn" onclick="event.stopPropagation();openRoundSheet('${s.roundId}')">⛳ 기록보기</span>`
-        :canAddRecord
-          ?`<span class="sched-record-btn sched-add-record-btn" onclick="event.stopPropagation();openRoundFromSchedule('${s.id}')">＋ 기록추가</span>`
-          :''}
+      ${showRecordBtn
+        ? hasRecord
+          ? `<span class="sched-record-btn" onclick="event.stopPropagation();openRoundSheet('${s.roundId}')">⛳ 기록보기</span>`
+          : `<span class="sched-record-btn sched-add-record-btn" onclick="event.stopPropagation();openRoundFromSchedule('${s.id}')">＋ 기록</span>`
+        : ''}
     </div>
   </div>`;
 }
 
-async function renderRecentRounds(){
+async function openRoundDetail(id){
+  const all=await DB.getR();
+  const r=all.find(x=>x.id===id); if(!r) return;
+  const u=getUser(r.userId);
+  const pars=r.holePars||PAR;
+  const dl=d=>d>0?`+${d}`:d===0?'E':`${d}`;
+
+  // 홀별 상세
+  let holeSection='';
+  if(r.holeScores&&r.holeScores.length===18){
+    const front=r.holeScores.slice(0,9),back=r.holeScores.slice(9);
+    const fPar=pars.slice(0,9).reduce((a,b)=>a+b,0),bPar=pars.slice(9).reduce((a,b)=>a+b,0);
+    const fSum=front.reduce((a,b)=>a+b,0),bSum=back.reduce((a,b)=>a+b,0);
+    const cls=(s,i)=>{const d=s-pars[i];return d<=-2?'eagle':d===-1?'birdie':d===0?'par':d===1?'bogey':d===2?'double':'worse';};
+    const cells=(arr,off)=>arr.map((s,i)=>`<div class="hole-score-cell ${cls(s,off+i)}">${s}</div>`).join('');
+    holeSection=`<div class="detail-section">
+      <div class="detail-section-title">홀별 타수</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">전반 ${fSum}타 (${dl(fSum-fPar)})</div>
+      <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px">${cells(front,0)}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">후반 ${bSum}타 (${dl(bSum-bPar)})</div>
+      <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px">${cells(back,9)}</div>
+      <div style="background:var(--green-pale);border-radius:var(--r-sm);padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:600;color:var(--green-mid)">합계</span>
+        <span style="font-size:18px;font-weight:900;color:var(--green-deep)">${fSum+bSum}타 (${dl(fSum+bSum-fPar-bPar)})</span>
+      </div>
+    </div>`;
+  }
+
+  // 실수/굿샷
+  const mistakes=(r.mistakes||[]).filter(m=>!GOOD_TYPES.includes(m.type));
+  const goods=(r.mistakes||[]).filter(m=>GOOD_TYPES.includes(m.type));
+  const mistakeSection=mistakes.length?`<div class="detail-section">
+    <div class="detail-section-title">실수 유형</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${mistakes.map(m=>`<span class="mistake-tag">${m.type} ${m.count}회</span>`).join('')}
+    </div>
+  </div>`:'';
+  const goodSection=goods.length?`<div style="margin-bottom:12px">
+    ${goods.map(m=>`<span class="mistake-tag good">✅ ${m.type} ${m.count}회</span>`).join('')}
+  </div>`:'';
+
+  document.getElementById('detail-title').textContent=`${r.course}${r.courseName?' · '+r.courseName:''}`;
+  document.getElementById('detail-body').innerHTML=`
+    <div class="detail-section">
+      <div class="detail-stats-row">
+        <div><div class="detail-stat-val">${r.totalScore}</div><div class="detail-stat-label">총 타수</div></div>
+        <div><div class="detail-stat-val">${r.puttCount||'-'}</div><div class="detail-stat-label">퍼팅</div></div>
+        <div><div class="detail-stat-val" style="font-size:13px;padding-top:4px">${fmtDate(r.date)}</div><div class="detail-stat-label">날짜</div></div>
+      </div>
+    </div>
+    ${holeSection}
+    ${goodSection}
+    ${mistakeSection}
+    ${r.memo?`<div class="detail-section"><div class="detail-section-title">메모</div><div style="font-size:14px;color:var(--text-main);line-height:1.6">${r.memo}</div></div>`:''}
+  `;
+  document.getElementById('detail-edit-btn').onclick=()=>{ closeDetailOverlay(); openRoundSheet(id); };
+  document.getElementById('detail-del-btn').onclick=async()=>{
+    if(!confirm('기록을 삭제할까요?')) return;
+    S.editRId=id; await deleteRound();
+    closeDetailOverlay();
+  };
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetailOverlay(e){
+  if(e&&e.target!==document.getElementById('detail-overlay')) return;
+  document.getElementById('detail-overlay').classList.remove('open');
+}
   const all=await DB.getR();
   const rounds=all.filter(r=>r.userId===S.user).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
   document.getElementById('recent-rounds-list').innerHTML=rounds.length
@@ -1995,7 +2126,7 @@ function roundCardHTML(r,showUser){
     </div>`;
   }
 
-  return `<div class="round-card" onclick="openRoundSheet('${r.id}')">
+  return `<div class="round-card" onclick="openRoundDetail('${r.id}')">
     <div class="round-card-top">
       <div>
         <div class="round-course">${r.course}</div>
@@ -2014,6 +2145,9 @@ function roundCardHTML(r,showUser){
     </div>
     ${holeHTML}
     ${r.memo?`<div class="round-memo">💬 ${r.memo}</div>`:''}
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100);display:flex;justify-content:flex-end">
+      <span style="font-size:12px;font-weight:600;color:var(--green-mid);background:var(--green-pale);padding:5px 12px;border-radius:20px" onclick="event.stopPropagation();openRoundDetail('${r.id}')">📋 상세보기</span>
+    </div>
   </div>`;
 }
 
