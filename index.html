@@ -485,10 +485,10 @@ textarea.form-input{resize:none;min-height:72px}
 /* 기록 상세보기 오버레이 */
 .detail-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;
-  display:flex;align-items:flex-end;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .25s;
+  display:none;align-items:flex-end;justify-content:center;
+  opacity:0;transition:opacity .25s;
 }
-.detail-overlay.open{opacity:1;pointer-events:all;}
+.detail-overlay.open{display:flex;opacity:1;}
 .detail-card{
   background:var(--white);border-radius:var(--r-xl) var(--r-xl) 0 0;
   width:100%;max-height:88vh;overflow-y:auto;
