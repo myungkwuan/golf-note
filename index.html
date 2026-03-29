@@ -419,7 +419,35 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .btn-delete{padding:14px 18px;border-radius:var(--r-md);font-size:15px;font-weight:600;background:var(--gray-100);color:var(--red)}
 .btn-delete:active{background:#fce8e8}
 
-/* 홀별 입력 */
+/* 홀별 메모 섹션 */
+.hole-memo-section{margin-top:12px;border-top:1px solid var(--gray-100);padding-top:12px;}
+.hole-memo-title{font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:8px;}
+.hole-tab-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.hole-tab-btn{
+  min-width:34px;height:34px;border-radius:8px;font-size:12px;font-weight:700;
+  background:var(--gray-100);color:var(--text-sub);
+  border:1.5px solid transparent;transition:all .15s;position:relative;
+}
+.hole-tab-btn.active{background:var(--green-deep);color:#fff;border-color:var(--green-deep);}
+.hole-tab-btn.has-data::after{
+  content:'';position:absolute;top:2px;right:2px;
+  width:5px;height:5px;border-radius:50%;background:var(--gold);
+}
+.hole-tab-btn.active.has-data::after{background:rgba(255,255,255,.8);}
+.hole-detail-panel{
+  background:var(--gray-50);border-radius:var(--r-sm);padding:12px;
+  display:none;
+}
+.hole-detail-panel.open{display:block;}
+.hole-detail-header{font-size:13px;font-weight:700;color:var(--text-main);margin-bottom:10px;}
+.hole-mistake-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.hole-mistake-btn{
+  font-size:12px;font-weight:500;padding:5px 10px;border-radius:20px;
+  background:var(--white);color:var(--text-sub);border:1.5px solid var(--gray-100);
+  transition:all .15s;
+}
+.hole-mistake-btn.sel{background:var(--green-pale);color:var(--green-mid);border-color:var(--green-light);}
+.hole-mistake-btn.sel-good{background:var(--gold-light);color:var(--gold-dim);border-color:var(--gold);}
 .score-mode-toggle{display:flex;border-radius:var(--r-sm);overflow:hidden;border:1.5px solid var(--gray-100);margin-bottom:14px}
 .score-mode-btn{flex:1;padding:9px 0;font-size:13px;font-weight:500;color:var(--text-sub);background:var(--gray-50);text-align:center;transition:all .15s}
 .score-mode-btn.active{background:var(--green-deep);color:#fff}
@@ -1041,6 +1069,16 @@ textarea.form-input{resize:none;min-height:72px}
         <label class="form-label">퍼팅 수</label>
         <input type="number" class="form-input" id="round-putts-hole" placeholder="예: 34" min="10" max="72" inputmode="numeric">
       </div>
+      <!-- 홀별 메모/실수 -->
+      <div class="hole-memo-section">
+        <div class="hole-memo-title">홀별 메모 · 실수 (선택)</div>
+        <div class="hole-tab-row" id="hole-tab-row"></div>
+        <div class="hole-detail-panel" id="hole-detail-panel">
+          <div class="hole-detail-header" id="hole-detail-header"></div>
+          <div class="hole-mistake-btns" id="hole-mistake-btns"></div>
+          <input type="text" class="form-input" id="hole-memo-input" placeholder="홀 메모 (선택)" style="font-size:13px;padding:9px 12px;">
+        </div>
+      </div>
     </div>
 
     <div class="form-group">
@@ -1285,6 +1323,9 @@ let S={
   schedMonth:new Date().getMonth(),
   scoreMode:'simple',
   holePars:[...PAR],
+  holeMistakes: Array.from({length:18},()=>[]),  // 홀별 실수 배열
+  holeMemos: Array(18).fill(''),                   // 홀별 메모
+  activeHole: null,  // 현재 선택된 홀 (홀별 메모 입력용)
   fromScheduleId:null,
   coupleMode:false,      // 부부 함께 등록 여부
   editScope:'me',        // 'me' | 'both' — 공유 일정 수정 범위
@@ -1485,6 +1526,8 @@ function roundToSb(r){ return {
   total_score:r.totalScore, putt_count:r.puttCount||null,
   hole_scores:r.holeScores||null, hole_pars:r.holePars||null,
   mistakes:r.mistakes?JSON.stringify(r.mistakes):null,
+  hole_mistakes:r.holeMistakes?JSON.stringify(r.holeMistakes):null,
+  hole_memos:r.holeMemos?JSON.stringify(r.holeMemos):null,
   memo:r.memo||null, created_at:r.createdAt,
 };}
 function sbToRound(r){ return {
@@ -1493,6 +1536,8 @@ function sbToRound(r){ return {
   totalScore:r.total_score, puttCount:r.putt_count||null,
   holeScores:r.hole_scores||null, holePars:r.hole_pars||null,
   mistakes: typeof r.mistakes==='string' ? JSON.parse(r.mistakes||'[]') : (r.mistakes||[]),
+  holeMistakes: r.hole_mistakes ? (typeof r.hole_mistakes==='string'?JSON.parse(r.hole_mistakes):r.hole_mistakes) : null,
+  holeMemos: r.hole_memos ? (typeof r.hole_memos==='string'?JSON.parse(r.hole_memos):r.hole_memos) : null,
   memo:r.memo||'', createdAt:r.created_at,
 };}
 
@@ -1788,7 +1833,7 @@ function switchScoreMode(mode){
   document.getElementById('mode-hole').classList.toggle('active',mode==='hole');
   document.getElementById('score-simple').style.display=mode==='simple'?'block':'none';
   document.getElementById('score-hole').style.display=mode==='hole'?'block':'none';
-  if(mode==='hole') tryLoadCoursePars();
+  if(mode==='hole'){ tryLoadCoursePars(); setTimeout(buildHoleTabs,50); }
 }
 function buildHoleGrid(vals, pars){
   S.holePars = pars ? [...pars] : [...PAR];
@@ -1868,6 +1913,61 @@ function calcHoleTotals(){
   document.getElementById('hole-total').textContent=total!=null?`${total}타 (${totalDiffStr})`:'-';
   if(total!=null) document.getElementById('round-score').value=total;
 }
+function buildHoleTabs(){
+  const row=document.getElementById('hole-tab-row'); if(!row) return;
+  row.innerHTML='';
+  for(let i=0;i<18;i++){
+    const btn=document.createElement('button');
+    const hasData=S.holeMistakes[i].length>0||S.holeMemos[i];
+    btn.className='hole-tab-btn'+(hasData?' has-data':'')+(S.activeHole===i?' active':'');
+    btn.textContent=i+1;
+    btn.onclick=()=>selectHoleTab(i);
+    row.appendChild(btn);
+  }
+  // 패널
+  if(S.activeHole!==null) renderHolePanel(S.activeHole);
+}
+
+function selectHoleTab(gi){
+  // 현재 열린 홀 저장 후 전환
+  if(S.activeHole!==null) saveCurrentHoleData();
+  if(S.activeHole===gi){ S.activeHole=null; document.getElementById('hole-detail-panel').classList.remove('open'); }
+  else { S.activeHole=gi; document.getElementById('hole-detail-panel').classList.add('open'); renderHolePanel(gi); }
+  buildHoleTabs();
+}
+
+function renderHolePanel(gi){
+  const score=document.getElementById('hole-inp-'+gi)?.value||'?';
+  const par=S.holePars[gi];
+  document.getElementById('hole-detail-header').textContent=`${gi+1}번 홀 · P${par} · ${score}타`;
+  // 실수 버튼
+  const btns=document.getElementById('hole-mistake-btns'); btns.innerHTML='';
+  [...GOOD_TYPES,...MISTAKE_TYPES].forEach(t=>{
+    const b=document.createElement('button');
+    const isGood=GOOD_TYPES.includes(t);
+    const sel=S.holeMistakes[gi].includes(t);
+    b.className='hole-mistake-btn'+(sel?(isGood?' sel-good':' sel'):'');
+    b.textContent=(isGood?'✅ ':'')+t;
+    b.onclick=()=>toggleHoleMistake(gi,t);
+    btns.appendChild(b);
+  });
+  document.getElementById('hole-memo-input').value=S.holeMemos[gi]||'';
+}
+
+function toggleHoleMistake(gi,type){
+  const arr=S.holeMistakes[gi];
+  const idx=arr.indexOf(type);
+  if(idx>=0) arr.splice(idx,1); else arr.push(type);
+  renderHolePanel(gi);
+  buildHoleTabs();
+}
+
+function saveCurrentHoleData(){
+  if(S.activeHole===null) return;
+  const memoEl=document.getElementById('hole-memo-input');
+  if(memoEl) S.holeMemos[S.activeHole]=memoEl.value.trim();
+}
+
 function getHoleScores(){
   const vs=[];
   for(let i=0;i<18;i++) vs.push(parseInt(document.getElementById('hole-inp-'+i)?.value||'')||0);
@@ -1890,6 +1990,7 @@ async function openRoundFromSchedule(schedId){
 async function openRoundSheet(id){
   if(id!==undefined) S.fromScheduleId=null;
   closeAllSheets(true); S.editRId=id; S.selMistakes={}; S.activeMistake=null;
+  S.holeMistakes=Array.from({length:18},()=>[]); S.holeMemos=Array(18).fill(''); S.activeHole=null;
   const g=document.getElementById('mistake-grid'); g.innerHTML='';
   GOOD_TYPES.forEach(t=>{
     const btn=document.createElement('button');
@@ -1917,6 +2018,8 @@ async function openRoundSheet(id){
     document.getElementById('round-putts').value=r.puttCount||'';
     document.getElementById('round-memo').value=r.memo||'';
     (r.mistakes||[]).forEach(m=>S.selMistakes[m.type]=m.count);
+    if(r.holeMistakes) S.holeMistakes=r.holeMistakes.map(a=>a?[...a]:[]);
+    if(r.holeMemos) S.holeMemos=[...r.holeMemos];
     if(r.holeScores){switchScoreMode('hole');buildHoleGrid(r.holeScores,r.holePars||null);document.getElementById('round-putts-hole').value=r.puttCount||'';}
     else buildHoleGrid(null,null);
   } else {
@@ -1951,8 +2054,12 @@ function tryLoadCoursePars(){
   }
 }
 function onMistakeClick(type){
-  if(S.activeMistake===type){S.activeMistake=null;document.getElementById('mistake-count-row').style.display='none';}
-  else{
+  if(S.activeMistake===type){
+    // 한 번 더 클릭 → 완전 해제
+    S.activeMistake=null;
+    delete S.selMistakes[type];
+    document.getElementById('mistake-count-row').style.display='none';
+  } else {
     S.activeMistake=type;
     if(!S.selMistakes[type]) S.selMistakes[type]=1;
     document.getElementById('mistake-count-row').style.display='flex';
@@ -1992,12 +2099,16 @@ async function saveRound(){
     puttCount=parseInt(document.getElementById('round-putts').value)||null;
   }
   if(!course||!date||isNaN(totalScore)){alert('날짜, 골프장, 타수를 입력해주세요');return;}
+  // 현재 열린 홀 데이터 저장
+  saveCurrentHoleData();
   const mistakes=Object.entries(S.selMistakes).filter(([,c])=>c>0).map(([type,count])=>({type,count}));
   const obj={
     id:S.editRId||uid(), userId:S.user, date, course,
     courseName:document.getElementById('round-course-name').value.trim(),
     totalScore, puttCount, holeScores,
     holePars:S.scoreMode==='hole'?[...S.holePars]:null,
+    holeMistakes:S.scoreMode==='hole'?S.holeMistakes.map(a=>[...a]):null,
+    holeMemos:S.scoreMode==='hole'?[...S.holeMemos]:null,
     mistakes, memo:document.getElementById('round-memo').value.trim(),
     createdAt:Date.now(),
   };
@@ -2182,28 +2293,53 @@ async function openRoundDetail(id){
     </div>`;
   }
 
-  // ── 샷 메모 ──
+  // ── 홀별 실수+메모 ──
+  let holeMemoHTML='';
+  if(r.holeScores&&(r.holeMistakes||r.holeMemos)){
+    const rows=r.holeScores.map((_,i)=>{
+      const hm=r.holeMistakes?r.holeMistakes[i]||[]:[];
+      const memo=r.holeMemos?r.holeMemos[i]||'':'';
+      if(!hm.length&&!memo) return '';
+      const goods=hm.filter(t=>GOOD_TYPES.includes(t));
+      const mistakes=hm.filter(t=>!GOOD_TYPES.includes(t));
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--gray-100)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:700;color:var(--text-muted);min-width:36px">${i+1}홀</span>
+          <span style="font-size:11px;color:var(--text-sub)">P${pars[i]} · ${r.holeScores[i]}타 (${dl(r.holeScores[i]-pars[i])})</span>
+        </div>
+        ${goods.length?`<div style="margin-bottom:4px">${goods.map(t=>`<span class="mistake-tag good" style="margin-right:4px">✅ ${t}</span>`).join('')}</div>`:''}
+        ${mistakes.length?`<div style="margin-bottom:4px">${mistakes.map(t=>`<span class="mistake-tag" style="margin-right:4px">${t}</span>`).join('')}</div>`:''}
+        ${memo?`<div style="font-size:13px;color:var(--text-sub);margin-top:4px">💬 ${memo}</div>`:''}
+      </div>`;
+    }).filter(Boolean).join('');
+    if(rows) holeMemoHTML=`<div class="detail-section">
+      <div class="detail-section-title">홀별 메모</div>
+      ${rows}
+    </div>`;
+  }
+
+  // ── 전체 샷 메모 ──
   const goods=(r.mistakes||[]).filter(m=>GOOD_TYPES.includes(m.type));
   const mistakes=(r.mistakes||[]).filter(m=>!GOOD_TYPES.includes(m.type));
   const shotHTML=(goods.length||mistakes.length)?`<div class="detail-section">
-    <div class="detail-section-title">샷 메모</div>
-    ${goods.length?`<div style="margin-bottom:10px">
-      <div style="font-size:11px;font-weight:700;color:var(--green-mid);letter-spacing:.5px;margin-bottom:6px">✅ 굿샷</div>
+    <div class="detail-section-title">라운드 샷 메모</div>
+    ${goods.length?`<div style="margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--green-mid);margin-bottom:5px">✅ 굿샷</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${goods.map(m=>`<span class="mistake-tag good">${m.type} ${m.count}회</span>`).join('')}</div>
     </div>`:''}
     ${mistakes.length?`<div>
-      <div style="font-size:11px;font-weight:700;color:var(--red);letter-spacing:.5px;margin-bottom:6px">실수 유형</div>
+      <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:5px">실수 유형</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${mistakes.map(m=>`<span class="mistake-tag">${m.type} ${m.count}회</span>`).join('')}</div>
     </div>`:''}
   </div>`:''
 
-  // ── 메모 ──
+  // ── 전체 라운드 메모 ──
   const memoHTML=r.memo?`<div class="detail-section">
-    <div class="detail-section-title">메모</div>
+    <div class="detail-section-title">라운드 메모</div>
     <div class="detail-memo">${r.memo}</div>
   </div>`:''
 
-  document.getElementById('detail-body').innerHTML=summaryHTML+holeHTML+shotHTML+memoHTML;
+  document.getElementById('detail-body').innerHTML=summaryHTML+holeHTML+holeMemoHTML+shotHTML+memoHTML;
   document.getElementById('detail-edit-btn').onclick=()=>{ closeDetailOverlay(); openRoundSheet(id); };
   document.getElementById('detail-del-btn').onclick=async()=>{
     if(!confirm('기록을 삭제할까요?')) return;
