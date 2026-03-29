@@ -14,36 +14,37 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* 컬러 팔레트 — 딥 포레스트 + 골드 */
-  --green-deep:#0F2D1E;
-  --green-mid:#1E5C3A;
-  --green-rich:#2D7A52;
-  --green-light:#4BAE78;
-  --green-pale:#E0F5E9;
-  --green-bg:#F0F7F3;
-  --gold:#C9A84C;
-  --gold-light:#FBF0D4;
-  --gold-dim:#8A6B2A;
+  /* ── 컬러 팔레트 ── */
+  --green-deep:#0A2318;       /* 헤더/강조 — 더 깊고 진한 포레스트 */
+  --green-mid:#1A5235;        /* 버튼/포인트 */
+  --green-rich:#266B45;       /* 서브 강조 */
+  --green-light:#3D9E6A;      /* 액센트 */
+  --green-pale:#E8F5EE;       /* 배경 틴트 */
+  --green-bg:#ECF4F0;         /* 앱 배경 — 살짝 더 진해서 카드 부각 */
+  --gold:#B8922A;             /* 골드 — 더 깊고 고급스럽게 */
+  --gold-light:#F5E8C0;
+  --gold-dim:#7A5E18;
   --white:#FFFFFF;
-  --gray-50:#F7FAF8;
-  --gray-100:#E8EFEB;
-  --gray-200:#D4DED8;
-  --gray-300:#B0C4B8;
-  --gray-500:#6E8C7A;
-  --gray-700:#374D41;
-  --text-main:#0D1F16;
-  --text-sub:#516B5C;
-  --text-muted:#8FA89A;
-  --red:#C93535;
-  --red-pale:#FDEAEA;
-  --yellow:#D4860E;
-  --yellow-pale:#FEF3DC;
+  --gray-50:#F5F8F6;
+  --gray-100:#E2EBE6;
+  --gray-200:#C8D8CF;
+  --gray-300:#A2BBA9;
+  --gray-500:#618070;
+  --gray-700:#2E4238;
+  --text-main:#0A1E14;
+  --text-sub:#42604F;
+  --text-muted:#7A9A86;
+  --red:#B83030;
+  --red-pale:#FBEAEA;
+  --yellow:#C47A0A;
+  --yellow-pale:#FDF0D0;
   --r-sm:10px; --r-md:16px; --r-lg:24px; --r-xl:28px;
-  --sh-xs:0 1px 4px rgba(0,0,0,.06);
-  --sh-sm:0 2px 12px rgba(0,0,0,.08);
-  --sh-md:0 6px 24px rgba(0,0,0,.10);
-  --sh-lg:0 12px 40px rgba(0,0,0,.16);
-  --sh-green:0 4px 16px rgba(15,45,30,.25);
+  /* 그림자 — 더 선명하게 */
+  --sh-xs:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+  --sh-sm:0 2px 8px rgba(0,0,0,.09),0 1px 3px rgba(0,0,0,.07);
+  --sh-md:0 6px 20px rgba(0,0,0,.11),0 2px 6px rgba(0,0,0,.07);
+  --sh-lg:0 14px 40px rgba(0,0,0,.15),0 4px 12px rgba(0,0,0,.08);
+  --sh-green:0 4px 18px rgba(10,35,24,.30),0 1px 4px rgba(10,35,24,.15);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -56,15 +57,21 @@ input,textarea,select{font-family:inherit;font-size:15px}
 #user-select-screen{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   height:100%;
-  background:linear-gradient(155deg,#0A1F14 0%,#0F2D1E 45%,#163828 100%);
+  background:linear-gradient(160deg,#060F09 0%,#0A2318 40%,#0F2E1C 100%);
   padding:32px 24px;gap:44px;
   position:relative;overflow:hidden;
   z-index:500;
 }
 #user-select-screen::before{
-  content:'';position:absolute;top:-60px;right:-60px;
-  width:280px;height:280px;border-radius:50%;
-  background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 70%);
+  content:'';position:absolute;top:-80px;right:-80px;
+  width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(circle,rgba(184,146,42,.10) 0%,transparent 70%);
+  pointer-events:none;
+}
+#user-select-screen::after{
+  content:'';position:absolute;bottom:-60px;left:-60px;
+  width:240px;height:240px;border-radius:50%;
+  background:radial-gradient(circle,rgba(61,158,106,.08) 0%,transparent 70%);
   pointer-events:none;
 }
 .select-logo{text-align:center;color:#fff;position:relative}
@@ -73,14 +80,14 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .select-logo p{font-size:13px;color:rgba(255,255,255,.45);margin-top:5px;letter-spacing:.3px}
 .select-cards{display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px}
 .user-card{
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:var(--r-lg);padding:20px 22px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:var(--r-lg);padding:22px 24px;
   display:flex;align-items:center;gap:16px;color:#fff;
   cursor:pointer;
-  backdrop-filter:blur(12px);
+  backdrop-filter:blur(16px);
   transition:all .2s;
-  box-shadow:0 4px 20px rgba(0,0,0,.2);
+  box-shadow:0 4px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08);
 }
 .user-card:active{opacity:.8;transform:scale(.98)}
 .user-card .avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0}
@@ -91,11 +98,11 @@ input,textarea,select{font-family:inherit;font-size:15px}
 /* ── 메인 헤더 ── */
 #main-app{display:none;flex-direction:column;height:100%;overflow:hidden}
 .app-header{
-  background:linear-gradient(180deg,#0F2D1E 0%,#142E20 100%);
+  background:linear-gradient(180deg,#060F09 0%,#0A2318 100%);
   color:#fff;
   padding:env(safe-area-inset-top,0px) 20px 0;
   flex-shrink:0;
-  box-shadow:0 2px 16px rgba(0,0,0,.25);
+  box-shadow:0 2px 20px rgba(0,0,0,.35);
 }
 .header-inner{display:flex;align-items:center;justify-content:space-between;padding:13px 0}
 .header-left{display:flex;align-items:center;gap:10px}
@@ -180,9 +187,9 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .cal-dot.join{background:#7B61FF}
 /* 캘린더 일정 라벨 */
 .cal-label{font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;line-height:1.5;white-space:nowrap;letter-spacing:.2px}
-.cal-label.join{background:#EDE9FF;color:#5B3FD4}
-.cal-label.solo{background:var(--green-pale);color:var(--green-mid)}
-.cal-label.pending{background:var(--gold-light);color:var(--gold-dim)}
+.cal-label.join{background:#E0D8FF;color:#4A2FBE}
+.cal-label.solo{background:#CCF0DC;color:#0F5C30}
+.cal-label.pending{background:#FDE8B0;color:#7A4E00}
 .cal-label.cancelled{background:var(--gray-100);color:var(--gray-500)}
 
 /* ── 섹션 타이틀 ── */
@@ -220,11 +227,11 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .sched-meta{font-size:13px;color:var(--text-muted)}
 .sched-meta span{margin-right:10px}
 .sched-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
-.sched-status{font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap}
-.sched-status.confirmed{background:var(--green-pale);color:var(--green-mid)}
-.sched-status.pending{background:var(--gold-light);color:var(--gold-dim)}
+.sched-status{font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap}
+.sched-status.confirmed{background:#D6F0E2;color:#0F5C30}
+.sched-status.pending{background:#FDE8B0;color:#7A4E00}
 .sched-status.cancelled{background:var(--gray-100);color:var(--gray-500);text-decoration:line-through}
-.sched-record-btn{font-size:12px;font-weight:600;background:var(--green-pale);color:var(--green-mid);padding:5px 11px;border-radius:20px;white-space:nowrap;min-height:30px;display:flex;align-items:center;}
+.sched-record-btn{font-size:12px;font-weight:700;background:#D6F0E2;color:#0F5C30;padding:5px 11px;border-radius:20px;white-space:nowrap;min-height:30px;display:flex;align-items:center;}
 .sched-add-record-btn{background:var(--green-deep);color:#fff;}
 
 /* ── 라운드 카드 ── */
@@ -273,19 +280,24 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .hole-score-cell .hsc-par{font-size:9px;color:var(--text-muted);font-weight:600;}
 .hole-score-cell .hsc-score{font-size:15px;font-weight:900;color:var(--text-main);line-height:1;}
 .hole-score-cell .hsc-diff{font-size:10px;font-weight:700;}
-.hole-score-cell.eagle{background:#D4F5E2;border-color:#52B788;}
+.hole-score-cell.eagle{background:#A8ECC4;border-color:#2D9955;}
 .hole-score-cell.eagle .hsc-score{color:#0A3B1E;}
-.hole-score-cell.eagle .hsc-diff{color:#1A6B38;}
-.hole-score-cell.birdie{background:#E8F7EE;border-color:#74C99A;}
-.hole-score-cell.birdie .hsc-score{color:#0F5E30;}
-.hole-score-cell.birdie .hsc-diff{color:#2D9348;}
+.hole-score-cell.eagle .hsc-diff{color:#0F5C2A;}
+.hole-score-cell.birdie{background:#CCF0DC;border-color:#52B788;}
+.hole-score-cell.birdie .hsc-score{color:#0F4A28;}
+.hole-score-cell.birdie .hsc-diff{color:#1A7A3E;}
+.hole-score-cell.par{background:var(--gray-100);border-color:var(--gray-200);}
+.hole-score-cell.par .hsc-score{color:var(--gray-700);}
 .hole-score-cell.par .hsc-diff{color:var(--gray-300);}
-.hole-score-cell.bogey{background:var(--gray-50);border-color:var(--gray-200);}
-.hole-score-cell.bogey .hsc-diff{color:var(--text-sub);}
-.hole-score-cell.double{background:var(--gray-50);border-color:var(--gray-200);}
-.hole-score-cell.double .hsc-diff{color:var(--text-sub);}
-.hole-score-cell.worse{background:var(--gray-50);border-color:var(--gray-200);}
-.hole-score-cell.worse .hsc-diff{color:var(--text-sub);}
+.hole-score-cell.bogey{background:#FFF8E6;border-color:#E8C060;}
+.hole-score-cell.bogey .hsc-score{color:#5A3A00;}
+.hole-score-cell.bogey .hsc-diff{color:#8A5800;}
+.hole-score-cell.double{background:#FFEDDC;border-color:#E89040;}
+.hole-score-cell.double .hsc-score{color:#5A2800;}
+.hole-score-cell.double .hsc-diff{color:#8A4000;}
+.hole-score-cell.worse{background:#FFE0E0;border-color:#D06060;}
+.hole-score-cell.worse .hsc-score{color:#5A0000;}
+.hole-score-cell.worse .hsc-diff{color:#9A0000;}
 .hole-score-sep{font-size:11px;color:var(--gray-200);padding:0 5px;flex-shrink:0;align-self:center;}
 .hole-scores-sum-row{display:flex;gap:14px;margin-top:8px;font-size:13px;color:var(--text-muted)}
 .hole-scores-sum-row span{font-weight:700;color:var(--green-rich)}
@@ -596,18 +608,18 @@ textarea.form-input{resize:none;min-height:72px}
 .hole-table .ht-par{font-size:11px;color:var(--text-sub);}
 .hole-table .ht-score{border-radius:5px;font-size:12px;font-weight:700;display:inline-block;width:24px;height:24px;line-height:24px;}
 .hole-table .ht-diff{font-size:10px;font-weight:600;}
-.ht-eagle{background:#D4F5E2;color:#0A3B1E;}
-.ht-birdie{background:#E8F7EE;color:#0F5E30;}
+.ht-eagle{background:#A8ECC4;color:#0A3B1E;}
+.ht-birdie{background:#CCF0DC;color:#0F4A28;}
 .ht-par{background:var(--gray-100);color:var(--gray-700);}
-.ht-bogey{background:var(--gray-50);color:var(--text-main);}
-.ht-double{background:var(--gray-50);color:var(--text-main);}
-.ht-worse{background:var(--gray-50);color:var(--text-main);}
-.ht-diff-eagle{color:#0A3B1E;}
-.ht-diff-birdie{color:#0F5E30;}
+.ht-bogey{background:#FFF8E6;color:#5A3A00;}
+.ht-double{background:#FFEDDC;color:#5A2800;}
+.ht-worse{background:#FFE0E0;color:#5A0000;}
+.ht-diff-eagle{color:#0F5C2A;}
+.ht-diff-birdie{color:#1A7A3E;}
 .ht-diff-par{color:var(--gray-300);}
-.ht-diff-bogey{color:var(--text-sub);}
-.ht-diff-double{color:var(--text-sub);}
-.ht-diff-worse{color:var(--text-sub);}
+.ht-diff-bogey{color:#8A5800;}
+.ht-diff-double{color:#8A4000;}
+.ht-diff-worse{color:#9A0000;}
 .half-summary{
   display:flex;justify-content:space-between;align-items:center;
   background:var(--green-bg);border-radius:var(--r-sm);
