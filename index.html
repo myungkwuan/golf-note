@@ -483,45 +483,97 @@ textarea.form-input{resize:none;min-height:72px}
 .empty-state .hint{font-size:12px;color:var(--gray-300);margin-top:6px}
 .past-label{font-size:11px;color:var(--gray-500);font-style:italic}
 
-/* 기록 상세보기 오버레이 */
+/* ── 기록 상세 풀스크린 ── */
 .detail-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;
-  display:none;align-items:flex-end;justify-content:center;
+  position:fixed;inset:0;z-index:400;
+  display:none;flex-direction:column;
+  background:var(--green-bg);
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.32,.72,0,1);
 }
-.detail-overlay.open{display:flex;}
-.detail-card{
-  background:var(--white);border-radius:var(--r-xl) var(--r-xl) 0 0;
-  width:100%;max-height:88vh;overflow-y:auto;
-  padding:0 0 env(safe-area-inset-bottom,24px);
-  transform:translateY(30px);transition:transform .3s cubic-bezier(.32,.72,0,1);
+.detail-overlay.open{display:flex;transform:translateY(0);}
+.detail-header{
+  background:linear-gradient(180deg,var(--green-deep) 0%,#142E20 100%);
+  color:#fff;
+  padding:env(safe-area-inset-top,0px) 20px 0;
+  flex-shrink:0;
 }
-.detail-overlay.open .detail-card{transform:translateY(0);}
-.detail-card-handle{width:36px;height:4px;background:var(--gray-200);border-radius:2px;margin:12px auto 0;}
-.detail-card-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 20px 12px;border-bottom:1px solid var(--gray-100);
+.detail-header-inner{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 0 12px;
 }
-.detail-card-title{font-size:17px;font-weight:700;color:var(--text-main)}
-.detail-card-close{
-  width:32px;height:32px;border-radius:50%;background:var(--gray-100);
+.detail-back-btn{
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,.12);
   display:flex;align-items:center;justify-content:center;
-  font-size:16px;color:var(--text-sub);
+  font-size:18px;color:#fff;flex-shrink:0;
 }
-.detail-card-body{padding:20px;}
-.detail-row{display:flex;gap:8px;margin-bottom:14px;align-items:flex-start;}
-.detail-icon{font-size:16px;flex-shrink:0;margin-top:1px}
-.detail-label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:3px;}
-.detail-value{font-size:15px;font-weight:600;color:var(--text-main);}
-.detail-sub{font-size:12px;color:var(--text-sub);}
-.detail-hole-grid{display:flex;gap:3px;flex-wrap:wrap;margin-top:8px;}
-.detail-section{background:var(--gray-50);border-radius:var(--r-sm);padding:14px;margin-bottom:12px;}
-.detail-section-title{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.8px;margin-bottom:10px;}
-.detail-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;}
-.detail-stat-val{font-size:22px;font-weight:900;color:var(--green-deep);letter-spacing:-1px;}
-.detail-stat-label{font-size:11px;color:var(--text-muted);margin-top:2px;}
-.detail-action-row{display:flex;gap:8px;padding:0 20px 8px;}
-.detail-action-btn{flex:1;padding:13px;border-radius:var(--r-md);font-size:14px;font-weight:700;text-align:center;}
-.detail-action-edit{background:var(--green-deep);color:#fff;}
+.detail-header-info{flex:1;min-width:0;}
+.detail-header-course{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.detail-header-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;}
+.detail-score-pill{
+  background:rgba(255,255,255,.12);
+  border-radius:14px;padding:6px 14px;text-align:center;flex-shrink:0;
+}
+.detail-score-big{font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1;}
+.detail-score-lbl{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;letter-spacing:.5px;}
+.detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 32px;}
+/* 요약 카드 */
+.detail-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.detail-summary-card{
+  background:var(--white);border-radius:var(--r-md);
+  padding:14px 8px;text-align:center;box-shadow:var(--sh-sm);
+}
+.detail-summary-val{font-size:22px;font-weight:900;color:var(--green-deep);letter-spacing:-1px;line-height:1;}
+.detail-summary-lbl{font-size:11px;color:var(--text-muted);margin-top:4px;}
+/* 섹션 */
+.detail-section{
+  background:var(--white);border-radius:var(--r-md);
+  padding:16px;margin-bottom:10px;box-shadow:var(--sh-sm);
+}
+.detail-section-title{
+  font-size:11px;font-weight:700;color:var(--text-muted);
+  letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;
+}
+/* 홀 테이블 */
+.hole-table{width:100%;border-collapse:collapse;}
+.hole-table th{font-size:10px;color:var(--text-muted);font-weight:600;padding:4px 0;text-align:center;}
+.hole-table td{text-align:center;padding:3px 1px;}
+.hole-table .ht-num{font-size:10px;color:var(--text-muted);}
+.hole-table .ht-par{font-size:11px;color:var(--text-sub);}
+.hole-table .ht-score{border-radius:5px;font-size:12px;font-weight:700;display:inline-block;width:24px;height:24px;line-height:24px;}
+.hole-table .ht-diff{font-size:10px;font-weight:600;}
+.ht-eagle{background:#7ECFA0;color:#0A3B1E;}
+.ht-birdie{background:#B8E8CA;color:#0F5E30;}
+.ht-par{background:var(--gray-100);color:var(--gray-700);}
+.ht-bogey{background:#FCE8B0;color:#7A5000;}
+.ht-double{background:#F6C4C4;color:#8B0000;}
+.ht-worse{background:#C93535;color:#fff;}
+.ht-diff-eagle{color:#0A3B1E;}
+.ht-diff-birdie{color:#0F5E30;}
+.ht-diff-par{color:var(--gray-300);}
+.ht-diff-bogey{color:#7A5000;}
+.ht-diff-double{color:var(--red);}
+.ht-diff-worse{color:#8B0000;}
+.half-summary{
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--green-bg);border-radius:var(--r-sm);
+  padding:8px 12px;margin-top:8px;
+}
+.half-summary-lbl{font-size:12px;color:var(--text-sub);font-weight:600;}
+.half-summary-val{font-size:15px;font-weight:700;color:var(--green-deep);}
+/* 결과 바 */
+.result-dist-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.result-dist-lbl{font-size:12px;font-weight:600;width:52px;flex-shrink:0;}
+.result-dist-bar-wrap{flex:1;height:18px;background:var(--gray-100);border-radius:4px;overflow:hidden;position:relative;}
+.result-dist-bar{height:100%;border-radius:4px;transition:width .5s;}
+.result-dist-cnt{font-size:12px;font-weight:600;width:20px;text-align:right;}
+/* 메모 */
+.detail-memo{font-size:14px;color:var(--text-main);line-height:1.7;white-space:pre-wrap;}
+/* 액션 */
+.detail-action-row{display:flex;gap:10px;padding:0 14px 8px;}
+.detail-action-btn{flex:1;padding:14px;border-radius:var(--r-md);font-size:15px;font-weight:700;text-align:center;}
+.detail-action-edit{background:linear-gradient(135deg,var(--green-mid),var(--green-deep));color:#fff;box-shadow:var(--sh-green);}
 .detail-action-del{background:var(--gray-100);color:var(--red);}
 
 /* 자동완성 */
@@ -799,19 +851,25 @@ textarea.form-input{resize:none;min-height:72px}
   <button class="pwa-banner-close" onclick="pwaDismiss()">✕</button>
 </div>
 
-<!-- 기록 상세보기 오버레이 -->
-<div class="detail-overlay" id="detail-overlay" onclick="closeDetailOverlay(event)">
-  <div class="detail-card" id="detail-card">
-    <div class="detail-card-handle"></div>
-    <div class="detail-card-header">
-      <div class="detail-card-title" id="detail-title"></div>
-      <button class="detail-card-close" onclick="closeDetailOverlay()">✕</button>
+<!-- 기록 상세 풀스크린 -->
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-header">
+    <div class="detail-header-inner">
+      <button class="detail-back-btn" onclick="closeDetailOverlay()">‹</button>
+      <div class="detail-header-info">
+        <div class="detail-header-course" id="detail-course"></div>
+        <div class="detail-header-sub" id="detail-date"></div>
+      </div>
+      <div class="detail-score-pill">
+        <div class="detail-score-big" id="detail-score"></div>
+        <div class="detail-score-lbl">타</div>
+      </div>
     </div>
-    <div class="detail-card-body" id="detail-body"></div>
-    <div class="detail-action-row">
-      <button class="detail-action-btn detail-action-edit" id="detail-edit-btn">✏️ 수정</button>
-      <button class="detail-action-btn detail-action-del" id="detail-del-btn">🗑 삭제</button>
-    </div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+  <div class="detail-action-row">
+    <button class="detail-action-btn detail-action-edit" id="detail-edit-btn">✏️ 수정</button>
+    <button class="detail-action-btn detail-action-del" id="detail-del-btn">🗑 삭제</button>
   </div>
 </div>
 
@@ -2031,55 +2089,121 @@ async function openRoundDetail(id){
   const u=getUser(r.userId);
   const pars=r.holePars||PAR;
   const dl=d=>d>0?`+${d}`:d===0?'E':`${d}`;
+  const clsName=d=>d<=-2?'eagle':d===-1?'birdie':d===0?'par':d===1?'bogey':d===2?'double':'worse';
 
-  // 홀별 상세
-  let holeSection='';
-  if(r.holeScores&&r.holeScores.length===18){
-    const front=r.holeScores.slice(0,9),back=r.holeScores.slice(9);
-    const fPar=pars.slice(0,9).reduce((a,b)=>a+b,0),bPar=pars.slice(9).reduce((a,b)=>a+b,0);
-    const fSum=front.reduce((a,b)=>a+b,0),bSum=back.reduce((a,b)=>a+b,0);
-    const cls=(s,i)=>{const d=s-pars[i];return d<=-2?'eagle':d===-1?'birdie':d===0?'par':d===1?'bogey':d===2?'double':'worse';};
-    const cells=(arr,off)=>arr.map((s,i)=>`<div class="hole-score-cell ${cls(s,off+i)}">${s}</div>`).join('');
-    holeSection=`<div class="detail-section">
-      <div class="detail-section-title">홀별 타수</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">전반 ${fSum}타 (${dl(fSum-fPar)})</div>
-      <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px">${cells(front,0)}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">후반 ${bSum}타 (${dl(bSum-bPar)})</div>
-      <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px">${cells(back,9)}</div>
-      <div style="background:var(--green-pale);border-radius:var(--r-sm);padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;font-weight:600;color:var(--green-mid)">합계</span>
-        <span style="font-size:18px;font-weight:900;color:var(--green-deep)">${fSum+bSum}타 (${dl(fSum+bSum-fPar-bPar)})</span>
+  // ── 헤더 ──
+  document.getElementById('detail-course').textContent=r.course+(r.courseName?' · '+r.courseName:'');
+  document.getElementById('detail-date').textContent=fmtDate(r.date)+(u?' · '+u.name:'');
+  document.getElementById('detail-score').textContent=r.totalScore;
+
+  // ── 요약 카드 ──
+  const totalPar=pars.reduce((a,b)=>a+b,0);
+  const overPar=r.totalScore-totalPar;
+  const summaryHTML=`
+    <div class="detail-summary-grid">
+      <div class="detail-summary-card">
+        <div class="detail-summary-val" style="color:var(--green-deep)">${r.totalScore}</div>
+        <div class="detail-summary-lbl">총 타수</div>
       </div>
+      <div class="detail-summary-card">
+        <div class="detail-summary-val" style="color:${overPar>0?'var(--red)':overPar<0?'var(--green-mid)':'var(--text-sub)'}">${dl(overPar)}</div>
+        <div class="detail-summary-lbl">파 대비</div>
+      </div>
+      <div class="detail-summary-card">
+        <div class="detail-summary-val" style="color:var(--text-sub)">${r.puttCount||'-'}</div>
+        <div class="detail-summary-lbl">퍼팅</div>
+      </div>
+    </div>`;
+
+  // ── 홀별 타수 테이블 ──
+  let holeHTML='';
+  if(r.holeScores&&r.holeScores.length===18){
+    const fScores=r.holeScores.slice(0,9), bScores=r.holeScores.slice(9);
+    const fPars=pars.slice(0,9), bPars=pars.slice(9);
+    const fSum=fScores.reduce((a,b)=>a+b,0), bSum=bScores.reduce((a,b)=>a+b,0);
+    const fPar=fPars.reduce((a,b)=>a+b,0), bPar=bPars.reduce((a,b)=>a+b,0);
+
+    const makeRows=(scores,parArr,offset)=>`
+      <tr>${scores.map((_,i)=>`<td class="ht-num">${offset+i+1}</td>`).join('')}</tr>
+      <tr>${parArr.map(p=>`<td class="ht-par">${p}</td>`).join('')}</tr>
+      <tr>${scores.map((s,i)=>{const d=s-parArr[i];return `<td><span class="ht-score ht-${clsName(d)}">${s}</span></td>`;}).join('')}</tr>
+      <tr>${scores.map((s,i)=>{const d=s-parArr[i];return `<td class="ht-diff ht-diff-${clsName(d)}">${d===0?'E':dl(d)}</td>`;}).join('')}</tr>`;
+
+    holeHTML=`<div class="detail-section">
+      <div class="detail-section-title">전반 (1~9홀)</div>
+      <div style="overflow-x:auto">
+        <table class="hole-table" style="min-width:100%">
+          ${makeRows(fScores,fPars,0)}
+        </table>
+      </div>
+      <div class="half-summary">
+        <span class="half-summary-lbl">전반 합계</span>
+        <span class="half-summary-val">${fSum}타 <span style="font-size:13px;color:${fSum-fPar>0?'var(--red)':fSum-fPar<0?'var(--green-mid)':'var(--text-sub)'}">(${dl(fSum-fPar)})</span></span>
+      </div>
+      <div class="detail-section-title" style="margin-top:16px">후반 (10~18홀)</div>
+      <div style="overflow-x:auto">
+        <table class="hole-table" style="min-width:100%">
+          ${makeRows(bScores,bPars,9)}
+        </table>
+      </div>
+      <div class="half-summary">
+        <span class="half-summary-lbl">후반 합계</span>
+        <span class="half-summary-val">${bSum}타 <span style="font-size:13px;color:${bSum-bPar>0?'var(--red)':bSum-bPar<0?'var(--green-mid)':'var(--text-sub)'}">(${dl(bSum-bPar)})</span></span>
+      </div>
+      <div class="half-summary" style="background:var(--green-pale);margin-top:6px">
+        <span class="half-summary-lbl" style="color:var(--green-mid)">최종 합계</span>
+        <span class="half-summary-val">${r.totalScore}타 <span style="font-size:13px;color:${overPar>0?'var(--red)':overPar<0?'var(--green-mid)':'var(--text-sub)'}">(${dl(overPar)})</span></span>
+      </div>
+    </div>`;
+
+    // 결과 분포
+    const dist={eagle:0,birdie:0,par:0,bogey:0,double:0,worse:0};
+    r.holeScores.forEach((s,i)=>{const d=s-pars[i];if(d<=-2)dist.eagle++;else if(d===-1)dist.birdie++;else if(d===0)dist.par++;else if(d===1)dist.bogey++;else if(d===2)dist.double++;else dist.worse++;});
+    const maxD=Math.max(...Object.values(dist),1);
+    const distRows=[
+      {key:'eagle',lbl:'이글↓',color:'#7ECFA0'},
+      {key:'birdie',lbl:'버디',color:'#B8E8CA'},
+      {key:'par',lbl:'파',color:'var(--gray-200)'},
+      {key:'bogey',lbl:'보기',color:'#FCE8B0'},
+      {key:'double',lbl:'더블',color:'#F6C4C4'},
+      {key:'worse',lbl:'트리플+',color:'#C93535'},
+    ].map(({key,lbl,color})=>`
+      <div class="result-dist-row">
+        <span class="result-dist-lbl">${lbl}</span>
+        <div class="result-dist-bar-wrap">
+          <div class="result-dist-bar" style="width:${Math.round(dist[key]/maxD*100)}%;background:${color}"></div>
+          ${dist[key]>0?`<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:${key==='par'?'var(--gray-700)':key==='eagle'||key==='birdie'?'#0A3B1E':'#4A0000'}">${dist[key]}홀</span>`:''}
+        </div>
+        <span class="result-dist-cnt">${Math.round(dist[key]/18*100)}%</span>
+      </div>`).join('');
+    holeHTML+=`<div class="detail-section">
+      <div class="detail-section-title">홀 결과 분포</div>
+      ${distRows}
     </div>`;
   }
 
-  // 실수/굿샷
-  const mistakes=(r.mistakes||[]).filter(m=>!GOOD_TYPES.includes(m.type));
+  // ── 샷 메모 ──
   const goods=(r.mistakes||[]).filter(m=>GOOD_TYPES.includes(m.type));
-  const mistakeSection=mistakes.length?`<div class="detail-section">
-    <div class="detail-section-title">실수 유형</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-      ${mistakes.map(m=>`<span class="mistake-tag">${m.type} ${m.count}회</span>`).join('')}
-    </div>
-  </div>`:'';
-  const goodSection=goods.length?`<div style="margin-bottom:12px">
-    ${goods.map(m=>`<span class="mistake-tag good">✅ ${m.type} ${m.count}회</span>`).join('')}
-  </div>`:'';
+  const mistakes=(r.mistakes||[]).filter(m=>!GOOD_TYPES.includes(m.type));
+  const shotHTML=(goods.length||mistakes.length)?`<div class="detail-section">
+    <div class="detail-section-title">샷 메모</div>
+    ${goods.length?`<div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--green-mid);letter-spacing:.5px;margin-bottom:6px">✅ 굿샷</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${goods.map(m=>`<span class="mistake-tag good">${m.type} ${m.count}회</span>`).join('')}</div>
+    </div>`:''}
+    ${mistakes.length?`<div>
+      <div style="font-size:11px;font-weight:700;color:var(--red);letter-spacing:.5px;margin-bottom:6px">실수 유형</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${mistakes.map(m=>`<span class="mistake-tag">${m.type} ${m.count}회</span>`).join('')}</div>
+    </div>`:''}
+  </div>`:''
 
-  document.getElementById('detail-title').textContent=`${r.course}${r.courseName?' · '+r.courseName:''}`;
-  document.getElementById('detail-body').innerHTML=`
-    <div class="detail-section">
-      <div class="detail-stats-row">
-        <div><div class="detail-stat-val">${r.totalScore}</div><div class="detail-stat-label">총 타수</div></div>
-        <div><div class="detail-stat-val">${r.puttCount||'-'}</div><div class="detail-stat-label">퍼팅</div></div>
-        <div><div class="detail-stat-val" style="font-size:13px;padding-top:4px">${fmtDate(r.date)}</div><div class="detail-stat-label">날짜</div></div>
-      </div>
-    </div>
-    ${holeSection}
-    ${goodSection}
-    ${mistakeSection}
-    ${r.memo?`<div class="detail-section"><div class="detail-section-title">메모</div><div style="font-size:14px;color:var(--text-main);line-height:1.6">${r.memo}</div></div>`:''}
-  `;
+  // ── 메모 ──
+  const memoHTML=r.memo?`<div class="detail-section">
+    <div class="detail-section-title">메모</div>
+    <div class="detail-memo">${r.memo}</div>
+  </div>`:''
+
+  document.getElementById('detail-body').innerHTML=summaryHTML+holeHTML+shotHTML+memoHTML;
   document.getElementById('detail-edit-btn').onclick=()=>{ closeDetailOverlay(); openRoundSheet(id); };
   document.getElementById('detail-del-btn').onclick=async()=>{
     if(!confirm('기록을 삭제할까요?')) return;
@@ -2089,8 +2213,7 @@ async function openRoundDetail(id){
   document.getElementById('detail-overlay').classList.add('open');
 }
 
-function closeDetailOverlay(e){
-  if(e&&e.target!==document.getElementById('detail-overlay')) return;
+function closeDetailOverlay(){
   document.getElementById('detail-overlay').classList.remove('open');
 }
 
