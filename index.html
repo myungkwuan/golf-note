@@ -117,9 +117,10 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .header-switch:active{background:rgba(255,255,255,.18)}
 .tab-nav{display:flex;border-bottom:1px solid rgba(255,255,255,.08)}
 .tab-nav-btn{
-  flex:1;padding:10px 0 11px;font-size:12px;font-weight:500;
+  flex:1;padding:12px 0 13px;font-size:13px;font-weight:500;
   color:rgba(255,255,255,.45);text-align:center;
   border-bottom:2px solid transparent;transition:all .2s;
+  min-height:44px;
 }
 .tab-nav-btn.active{color:#fff;border-bottom-color:var(--gold)}
 
@@ -129,7 +130,7 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .tab-pane.active{display:block}
 
 /* ── 캘린더 ── */
-.calendar-section{background:var(--white);padding:16px;box-shadow:var(--sh-xs)}
+.calendar-section{background:var(--white);padding:18px 16px;box-shadow:var(--sh-xs)}
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .cal-title{font-size:17px;font-weight:700;color:var(--text-main)}
 .cal-nav{display:flex;gap:4px}
@@ -178,57 +179,58 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .cal-dot.solo{background:var(--green-light)}
 .cal-dot.join{background:#7B61FF}
 /* 캘린더 일정 라벨 */
-.cal-label{font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;line-height:1.4;white-space:nowrap}
+.cal-label{font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;line-height:1.5;white-space:nowrap;letter-spacing:.2px}
 .cal-label.join{background:#EDE9FF;color:#5B3FD4}
 .cal-label.solo{background:var(--green-pale);color:var(--green-mid)}
 .cal-label.pending{background:var(--gold-light);color:var(--gold-dim)}
 .cal-label.cancelled{background:var(--gray-100);color:var(--gray-500)}
 
 /* ── 섹션 타이틀 ── */
-.upcoming-section{padding:16px 14px 0}
+.upcoming-section{padding:18px 16px 0}
 .section-title{
-  font-size:11px;font-weight:700;color:var(--text-muted);
-  letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;
+  font-size:13px;font-weight:700;color:var(--text-sub);
+  margin-bottom:12px;
 }
-.no-schedule{text-align:center;padding:20px;color:var(--gray-500);font-size:14px}
+.no-schedule{text-align:center;padding:24px;color:var(--gray-500);font-size:14px}
 
 /* ── 일정 카드 ── */
 .schedule-card{
   background:var(--white);border-radius:var(--r-md);
-  padding:14px 16px;margin-bottom:10px;
+  padding:16px;margin-bottom:10px;
   box-shadow:var(--sh-sm);
-  display:flex;gap:12px;align-items:flex-start;cursor:pointer;
+  display:flex;gap:14px;align-items:flex-start;cursor:pointer;
   border-left:3px solid transparent;
   transition:border-color .2s;
+  -webkit-tap-highlight-color:transparent;
 }
 .schedule-card:active{opacity:.75}
 .schedule-card[data-status="confirmed"]{border-left-color:var(--green-light)}
 .schedule-card[data-status="pending"]{border-left-color:var(--gold)}
 .schedule-card[data-status="cancelled"]{border-left-color:var(--gray-300)}
 .sched-date-block{
-  text-align:center;min-width:40px;
+  text-align:center;min-width:44px;
   background:linear-gradient(135deg,var(--green-pale),#C8EED8);
-  border-radius:10px;padding:6px 4px;flex-shrink:0;
+  border-radius:10px;padding:8px 6px;flex-shrink:0;
 }
-.sched-date-block .day-num{font-size:21px;font-weight:900;color:var(--green-deep);line-height:1}
-.sched-date-block .day-name{font-size:10px;color:var(--green-rich);font-weight:700;margin-top:2px;letter-spacing:.3px}
+.sched-date-block .day-num{font-size:22px;font-weight:900;color:var(--green-deep);line-height:1}
+.sched-date-block .day-name{font-size:11px;color:var(--green-rich);font-weight:700;margin-top:3px}
 .sched-info{flex:1;min-width:0}
-.sched-course-name{font-size:15px;font-weight:700;margin-bottom:3px;color:var(--text-main)}
-.sched-course-sub{font-size:12px;color:var(--text-sub);margin-bottom:3px}
-.sched-meta{font-size:12px;color:var(--text-muted)}
-.sched-meta span{margin-right:8px}
-.sched-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
-.sched-status{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;letter-spacing:.2px}
+.sched-course-name{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text-main)}
+.sched-course-sub{font-size:13px;color:var(--text-sub);margin-bottom:4px}
+.sched-meta{font-size:13px;color:var(--text-muted)}
+.sched-meta span{margin-right:10px}
+.sched-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.sched-status{font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap}
 .sched-status.confirmed{background:var(--green-pale);color:var(--green-mid)}
 .sched-status.pending{background:var(--gold-light);color:var(--gold-dim)}
 .sched-status.cancelled{background:var(--gray-100);color:var(--gray-500);text-decoration:line-through}
-.sched-record-btn{font-size:11px;font-weight:600;background:var(--green-pale);color:var(--green-mid);padding:3px 9px;border-radius:20px;white-space:nowrap}
+.sched-record-btn{font-size:12px;font-weight:600;background:var(--green-pale);color:var(--green-mid);padding:5px 11px;border-radius:20px;white-space:nowrap;min-height:30px;display:flex;align-items:center;}
 .sched-add-record-btn{background:var(--green-deep);color:#fff;}
 
 /* ── 라운드 카드 ── */
 .round-card{
   background:var(--white);border-radius:var(--r-md);
-  padding:16px;margin-bottom:10px;
+  padding:16px;margin-bottom:12px;
   box-shadow:var(--sh-sm);cursor:pointer;
   position:relative;overflow:hidden;
 }
@@ -239,54 +241,53 @@ input,textarea,select{font-family:inherit;font-size:15px}
   pointer-events:none;
 }
 .round-card:active{opacity:.75}
-.round-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
-.round-course{font-size:16px;font-weight:700;color:var(--text-main);letter-spacing:-.2px}
-.round-course-sub{font-size:12px;color:var(--text-sub);margin-top:2px}
-.round-date-str{font-size:12px;color:var(--text-muted);margin-top:3px}
-.round-score-wrap{text-align:center;background:linear-gradient(135deg,var(--green-deep),var(--green-mid));border-radius:12px;padding:8px 12px;min-width:52px;box-shadow:var(--sh-green)}
-.round-score-badge{font-size:24px;font-weight:900;color:#fff;line-height:1;letter-spacing:-1px}
-.round-score-label{font-size:10px;color:rgba(255,255,255,.7);text-align:center;margin-top:1px;letter-spacing:.5px}
-.round-stats{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.round-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:12px;}
+.round-course{font-size:17px;font-weight:700;color:var(--text-main);letter-spacing:-.2px}
+.round-course-sub{font-size:13px;color:var(--text-sub);margin-top:3px}
+.round-date-str{font-size:13px;color:var(--text-muted);margin-top:3px}
+.round-score-wrap{text-align:center;background:linear-gradient(135deg,var(--green-deep),var(--green-mid));border-radius:12px;padding:10px 14px;min-width:58px;box-shadow:var(--sh-green);flex-shrink:0;}
+.round-score-badge{font-size:26px;font-weight:900;color:#fff;line-height:1;letter-spacing:-1px}
+.round-score-label{font-size:11px;color:rgba(255,255,255,.7);text-align:center;margin-top:2px}
+.round-stats{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:2px;}
 .round-stat{display:flex;flex-direction:column;align-items:center}
-.round-stat-val{font-size:17px;font-weight:700;color:var(--text-main)}
-.round-stat-label{font-size:10px;color:var(--text-muted);margin-top:1px;letter-spacing:.3px}
-.round-divider{width:1px;height:28px;background:var(--gray-100)}
-.round-memo{font-size:12px;color:var(--text-sub);margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.round-mistakes{display:flex;gap:4px;flex-wrap:wrap}
-.mistake-tag{font-size:11px;background:var(--gray-100);color:var(--text-sub);padding:2px 8px;border-radius:20px;font-weight:500}
+.round-stat-val{font-size:18px;font-weight:700;color:var(--text-main)}
+.round-stat-label{font-size:11px;color:var(--text-muted);margin-top:2px}
+.round-divider{width:1px;height:30px;background:var(--gray-100)}
+.round-memo{font-size:13px;color:var(--text-sub);margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.round-mistakes{display:flex;gap:5px;flex-wrap:wrap}
+.mistake-tag{font-size:12px;background:var(--gray-100);color:var(--text-sub);padding:3px 10px;border-radius:20px;font-weight:500}
 .mistake-tag.good{background:var(--green-pale);color:var(--green-mid)}
 
 /* ── 홀별 스코어 (카드) ── */
-.hole-scores-wrap{margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100)}
-.hole-scores-label{font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
-.hole-scores-row{display:flex;gap:3px;align-items:center;overflow-x:auto}
+.hole-scores-wrap{margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-100)}
+.hole-scores-label{font-size:12px;font-weight:700;color:var(--text-sub);margin-bottom:8px;}
+.hole-scores-row{display:flex;gap:4px;align-items:stretch;overflow-x:auto;padding-bottom:4px;}
 .hole-scores-row::-webkit-scrollbar{display:none}
 .hole-score-cell{
-  min-width:36px;flex-shrink:0;
+  min-width:38px;flex-shrink:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  border-radius:6px;padding:4px 2px;gap:1px;
+  border-radius:7px;padding:5px 3px;gap:2px;
   border:1.5px solid var(--gray-100);
   background:var(--gray-50);
 }
 .hole-score-cell .hsc-par{font-size:9px;color:var(--text-muted);font-weight:600;}
-.hole-score-cell .hsc-score{font-size:14px;font-weight:900;color:var(--text-main);line-height:1;}
-.hole-score-cell .hsc-diff{font-size:9px;font-weight:700;}
-/* 버디/이글만 초록, 나머지 통일 */
+.hole-score-cell .hsc-score{font-size:15px;font-weight:900;color:var(--text-main);line-height:1;}
+.hole-score-cell .hsc-diff{font-size:10px;font-weight:700;}
 .hole-score-cell.eagle{background:#D4F5E2;border-color:#52B788;}
 .hole-score-cell.eagle .hsc-score{color:#0A3B1E;}
 .hole-score-cell.eagle .hsc-diff{color:#1A6B38;}
 .hole-score-cell.birdie{background:#E8F7EE;border-color:#74C99A;}
 .hole-score-cell.birdie .hsc-score{color:#0F5E30;}
 .hole-score-cell.birdie .hsc-diff{color:#2D9348;}
-.hole-score-cell.par .hsc-diff{color:var(--gray-400,#9ab0a3);}
+.hole-score-cell.par .hsc-diff{color:var(--gray-300);}
 .hole-score-cell.bogey{background:var(--gray-50);border-color:var(--gray-200);}
 .hole-score-cell.bogey .hsc-diff{color:var(--text-sub);}
 .hole-score-cell.double{background:var(--gray-50);border-color:var(--gray-200);}
 .hole-score-cell.double .hsc-diff{color:var(--text-sub);}
 .hole-score-cell.worse{background:var(--gray-50);border-color:var(--gray-200);}
 .hole-score-cell.worse .hsc-diff{color:var(--text-sub);}
-.hole-score-sep{font-size:10px;color:var(--gray-200);padding:0 4px;flex-shrink:0}
-.hole-scores-sum-row{display:flex;gap:14px;margin-top:6px;font-size:12px;color:var(--text-muted)}
+.hole-score-sep{font-size:11px;color:var(--gray-200);padding:0 5px;flex-shrink:0;align-self:center;}
+.hole-scores-sum-row{display:flex;gap:14px;margin-top:8px;font-size:13px;color:var(--text-muted)}
 .hole-scores-sum-row span{font-weight:700;color:var(--green-rich)}
 
 /* ── FAB ── */
@@ -301,7 +302,7 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .fab:active{transform:scale(.92)}
 
 /* ── 미니 통계 ── */
-.mini-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 0}
+.mini-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0}
 .mini-stat-card{
   background:var(--white);border-radius:var(--r-md);padding:16px;
   box-shadow:var(--sh-sm);
@@ -317,7 +318,7 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .mini-stat-card .sub{font-size:11px;color:var(--text-muted);margin-top:3px}
 
 /* ── 통계 탭 ── */
-.stats-section{padding:14px 14px 0}
+.stats-section{padding:16px 16px 0}
 .compare-card{
   background:var(--white);border-radius:var(--r-md);
   padding:18px;margin-bottom:12px;box-shadow:var(--sh-sm);
@@ -340,7 +341,7 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .mistake-freq-count{font-size:12px;font-weight:600;color:var(--text-sub);width:22px;text-align:right}
 
 /* ── 설정 탭 ── */
-.settings-section{padding:14px 14px 0}
+.settings-section{padding:16px 16px 0}
 .settings-card{background:var(--white);border-radius:var(--r-md);padding:18px;margin-bottom:12px;box-shadow:var(--sh-sm)}
 .settings-card-danger{border:1px solid #f5d0d0}
 .settings-card-title{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text-main)}
@@ -380,14 +381,15 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .schedule-month-group{padding:10px 14px 0}
 
 /* ── 목록 공통 ── */
-.list-section{padding:14px 14px 0}
-.filter-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+.list-section{padding:16px 16px 0}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
 .filter-row::-webkit-scrollbar{display:none}
 .filter-btn{
-  flex-shrink:0;font-size:13px;font-weight:500;
-  padding:6px 14px;border-radius:20px;
+  flex-shrink:0;font-size:13px;font-weight:600;
+  padding:8px 16px;border-radius:20px;
   background:var(--white);color:var(--text-sub);
   border:1.5px solid var(--gray-100);transition:all .15s;
+  min-height:38px;
 }
 .filter-btn.active{
   background:var(--green-deep);color:#fff;
@@ -474,13 +476,14 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .hole-cell{display:flex;flex-direction:column;align-items:center;gap:1px}
 .hole-num{font-size:9px;color:var(--gray-500);font-weight:600}
 .hole-par-btn{
-  font-size:10px;font-weight:700;color:#fff;
-  background:var(--green-mid);border-radius:4px;
-  padding:2px 0;width:100%;text-align:center;
+  font-size:11px;font-weight:700;color:#fff;
+  background:var(--green-mid);border-radius:5px;
+  padding:3px 0;width:100%;text-align:center;
   cursor:pointer;transition:background .1s;border:none;line-height:1.5;
+  min-height:22px;
 }
 .hole-par-btn:active{background:var(--green-deep)}
-.hole-inp{width:100%;height:34px;text-align:center;border:1.5px solid var(--gray-100);border-radius:6px;font-size:14px;font-weight:600;background:var(--gray-50);color:var(--text-main);padding:0;-webkit-appearance:none;transition:border-color .1s,background .1s}
+.hole-inp{width:100%;height:38px;text-align:center;border:1.5px solid var(--gray-100);border-radius:6px;font-size:15px;font-weight:700;background:var(--gray-50);color:var(--text-main);padding:0;-webkit-appearance:none;transition:border-color .1s,background .1s}
 .hole-inp:focus{outline:none;border-color:var(--green-light);background:#fff}
 .hole-inp.hc-eagle{background:#C8F0D8;border-color:#52B788;color:#1A6B38}
 .hole-inp.hc-birdie{background:#D4EDDA;border-color:#74C99A;color:#1A6B38}
