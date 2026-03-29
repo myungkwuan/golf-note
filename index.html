@@ -1489,9 +1489,20 @@ const DB = {
     if(_sb){
       const{data,error}=await _sb.from('rounds').select('*').order('date',{ascending:false});
       if(!error&&data){
-        const sbRounds=data.map(sbToRound);
-        // 로컬에만 있는 기록(Supabase에 아직 없는 것) 보존
         const local=DB.get('r')||[];
+        const localMap={};
+        local.forEach(r=>localMap[r.id]=r);
+        // Supabase 데이터 + 로컬에만 있는 holeMistakes/holeMemos 보존
+        const sbRounds=data.map(r=>{
+          const sb=sbToRound(r);
+          const loc=localMap[sb.id];
+          if(loc){
+            // 로컬에 holeMistakes/holeMemos 있으면 유지
+            if(loc.holeMistakes) sb.holeMistakes=loc.holeMistakes;
+            if(loc.holeMemos) sb.holeMemos=loc.holeMemos;
+          }
+          return sb;
+        });
         const sbIds=new Set(sbRounds.map(r=>r.id));
         const localOnly=local.filter(r=>!sbIds.has(r.id));
         const merged=[...sbRounds,...localOnly];
