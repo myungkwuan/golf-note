@@ -450,7 +450,21 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .btn-delete{padding:14px 18px;border-radius:var(--r-md);font-size:15px;font-weight:600;background:var(--gray-100);color:var(--red)}
 .btn-delete:active{background:#fce8e8}
 
-/* 홀별 메모 섹션 */
+/* 상대방 일정 카드 - 연하게 */
+.schedule-card.partner{
+  opacity:.65;
+  border-left-color:var(--gray-200) !important;
+  background:var(--gray-50);
+}
+.schedule-card.partner .sched-course-name{color:var(--text-sub);}
+.schedule-card.partner .sched-date-block{
+  background:var(--gray-100);
+}
+.schedule-card.partner .day-num{color:var(--gray-500) !important;}
+/* 공통 일정 - 골드 포인트 */
+.schedule-card.couple-shared{
+  border-left-color:var(--gold) !important;
+}
 .hole-memo-section{margin-top:12px;border-top:1px solid var(--gray-100);padding-top:12px;}
 .hole-memo-title{font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:8px;}
 .hole-tab-row{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:10px;}
@@ -1686,9 +1700,8 @@ function changeMonth(d){
 function renderCalendar(){
   const {calY:y,calM:m}=S;
   document.getElementById('cal-title').textContent=`${y}년 ${m+1}월`;
-  const couple=document.getElementById('couple-toggle').checked;
-  // 캘린더는 캐시 사용 (async 불필요)
-  const scheds=(DB.get('s')||[]).filter(s=>couple||s.userId===S.user);
+  // 항상 모든 일정 표시 (내 것 + 상대방)
+  const scheds=DB.get('s')||[];
   const first=new Date(y,m,1),last=new Date(y,m+1,0),todayStr=today();
   const grid=document.getElementById('cal-grid'); grid.innerHTML='';
   for(let i=0;i<first.getDay();i++) grid.appendChild(mkCell(new Date(y,m,-(first.getDay()-i-1)),'other-month',scheds,todayStr));
@@ -1707,15 +1720,17 @@ function mkCell(dt,extra,scheds,todayStr){
   const ds_scheds=scheds.filter(s=>s.date===ds);
   if(ds_scheds.length){
     const labels=document.createElement('div'); labels.className='cal-dots';
-    const couple=document.getElementById('couple-toggle').checked;
     ds_scheds.slice(0,2).forEach(s=>{
       const lbl=document.createElement('div');
+      const isOwn=s.userId===S.user;
+      const isCouple=s.isCouple;
       let cls,txt;
       if(s.status==='cancelled'){cls='cancelled';txt='취소';}
       else if(s.status==='pending'){cls='pending';txt='미정';}
-      else if(couple&&s.userId!==S.user){cls='join';txt='부부';}
       else{cls=s.playType==='solo'?'solo':'join';txt=s.playType==='solo'?'단독':'조인';}
       lbl.className='cal-label '+cls;
+      // 상대방 일정은 연하게
+      if(!isOwn && !isCouple) lbl.style.opacity='.4';
       lbl.textContent=txt;
       labels.appendChild(lbl);
     });
@@ -2270,8 +2285,9 @@ async function renderHome(){renderCalendar();await renderUpcoming();await render
 async function renderUpcoming(){
   const td=today();
   const all=await DB.getS();
-  const up=all.filter(s=>s.userId===S.user&&s.date>=td&&s.status!=='cancelled')
-    .sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
+  // 내 일정 + 상대방 일정 모두 포함, 날짜순 정렬
+  const up=all.filter(s=>s.date>=td&&s.status!=='cancelled')
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.userId.localeCompare(b.userId)).slice(0,4);
   document.getElementById('upcoming-list').innerHTML=up.length
     ?up.map(s=>schedCardHTML(s)).join('')
     :`<div class="empty-state"><div class="icon">📅</div><p>예정된 일정이 없습니다</p><p class="hint">일정 탭에서 추가할 수 있어요</p></div>`;
@@ -2279,10 +2295,17 @@ async function renderUpcoming(){
 
 function schedCardHTML(s){
   const dt=new Date(s.date+'T00:00:00');
-  const isPast=s.date<today();
+  const isOwn=s.userId===S.user;
+  const isCouple=s.isCouple;
   const hasRecord=!!s.roundId;
-  const showRecordBtn=s.status==='confirmed';
-  return `<div class="schedule-card" data-status="${s.status}" onclick="openScheduleSheet('${s.id}')">
+  const showRecordBtn=s.status==='confirmed'&&isOwn;
+  const partner=USERS.find(u=>u.id!==S.user);
+  // 카드 클래스: 상대방=연하게, 공유=골드 테두리
+  let cardCls='schedule-card';
+  if(isCouple) cardCls+=' couple-shared';
+  else if(!isOwn) cardCls+=' partner';
+
+  return `<div class="${cardCls}" data-status="${s.status}" onclick="${isOwn?`openScheduleSheet('${s.id}')`:``}">
     <div class="sched-date-block">
       <div class="day-num">${dt.getDate()}</div>
       <div class="day-name">${DAYS[dt.getDay()]}</div>
@@ -2291,6 +2314,8 @@ function schedCardHTML(s){
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px">
         <span class="sched-course-name" style="margin-bottom:0">${s.course}</span>
         <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0;${s.playType==='solo'?'background:#CCF0DC;color:#0F5C30':'background:#E0D8FF;color:#4A2FBE'}">${s.playType==='solo'?'단독':'조인'}</span>
+        ${!isOwn?`<span style="font-size:11px;font-weight:600;color:var(--text-muted)">${partner?.name||''}</span>`:''}
+        ${isCouple&&isOwn?`<span style="font-size:11px;font-weight:700;color:var(--gold)">💑공동</span>`:''}
       </div>
       ${s.courseName?`<div class="sched-course-sub">📍 ${s.courseName}</div>`:''}
       <div class="sched-meta">
@@ -2573,7 +2598,7 @@ function renderMiniStats_sync(){
 // ── 일정 탭 (1~12월 탭) ──
 async function renderScheduleTab(){
   const td=today();
-  const scheds=(await DB.getS()).filter(s=>s.userId===S.user);
+  const scheds=await DB.getS(); // 모든 일정 (내 것 + 상대방)
   const tabRow=document.getElementById('month-tab-row'); tabRow.innerHTML='';
   for(let mi=0;mi<12;mi++){
     const has=scheds.some(s=>getMonth(s.date)===mi);
