@@ -1837,19 +1837,33 @@ function mkCell(dt,extra,scheds,notes,todayStr){
   const ds_notes=(notes||[]).filter(n=>n.date===ds);
   if(ds_scheds.length||ds_notes.length){
     const labels=document.createElement('div'); labels.className='cal-dots';
-    ds_scheds.slice(0,2).forEach(s=>{
+    // 같은 날 두 사람 일정이 겹치면 하나로 합쳐서 표시
+    const myScheds=ds_scheds.filter(s=>s.userId===S.user);
+    const partnerScheds=ds_scheds.filter(s=>s.userId!==S.user);
+    const bothHave=myScheds.length>0&&partnerScheds.length>0;
+
+    if(bothHave){
+      // 둘 다 있으면 빨간색 단일 라벨
       const lbl=document.createElement('div');
-      const isOwn=s.userId===S.user;
-      const isCouple=s.isCouple;
-      let cls,txt;
-      if(s.status==='cancelled'){cls='cancelled';txt='취소';}
-      else if(s.status==='pending'){cls='pending';txt='미정';}
-      else{cls=s.playType==='solo'?'solo':'join';txt=s.playType==='solo'?'단독':'조인';}
-      lbl.className='cal-label '+cls;
-      if(!isOwn&&!isCouple) lbl.style.opacity='.4';
-      lbl.textContent=txt;
+      lbl.className='cal-label';
+      lbl.style.cssText='background:#FFD6D6;color:#9A0000;';
+      lbl.textContent='💑 함께';
       labels.appendChild(lbl);
-    });
+    } else {
+      ds_scheds.slice(0,2).forEach(s=>{
+        const lbl=document.createElement('div');
+        const isOwn=s.userId===S.user;
+        const isCouple=s.isCouple;
+        let cls,txt;
+        if(s.status==='cancelled'){cls='cancelled';txt='취소';}
+        else if(s.status==='pending'){cls='pending';txt='미정';}
+        else{cls=s.playType==='solo'?'solo':'join';txt=s.playType==='solo'?'단독':'조인';}
+        lbl.className='cal-label '+cls;
+        if(!isOwn&&!isCouple) lbl.style.opacity='.4';
+        lbl.textContent=txt;
+        labels.appendChild(lbl);
+      });
+    }
     ds_notes.slice(0,1).forEach(n=>{
       const lbl=document.createElement('div');
       const catTxt={appointment:'약속',task:'업무',etc:'메모'};
