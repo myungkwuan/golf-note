@@ -1014,12 +1014,18 @@ textarea.form-input{resize:none;min-height:72px}
     <button class="sheet-close" onclick="closeAllSheets()">✕</button>
   </div>
   <div class="sheet-body">
-    <div class="form-group">
-      <label class="form-label">카테고리</label>
-      <div class="note-category-group">
-        <button class="note-cat-btn" data-cat="appointment" onclick="selectNoteCat(this)">📅 약속</button>
-        <button class="note-cat-btn" data-cat="task" onclick="selectNoteCat(this)">📋 업무</button>
-        <button class="note-cat-btn" data-cat="etc" onclick="selectNoteCat(this)">💬 기타</button>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">날짜 (선택)</label>
+        <input type="date" class="form-input" id="note-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">카테고리</label>
+        <div class="note-category-group" style="flex-direction:column;gap:5px">
+          <button class="note-cat-btn" data-cat="appointment" onclick="selectNoteCat(this)">📅 약속</button>
+          <button class="note-cat-btn" data-cat="task" onclick="selectNoteCat(this)">📋 업무</button>
+          <button class="note-cat-btn" data-cat="etc" onclick="selectNoteCat(this)">💬 기타</button>
+        </div>
       </div>
     </div>
     <div class="form-group">
@@ -1810,16 +1816,16 @@ function changeMonth(d){
 function renderCalendar(){
   const {calY:y,calM:m}=S;
   document.getElementById('cal-title').textContent=`${y}년 ${m+1}월`;
-  // 항상 모든 일정 표시 (내 것 + 상대방)
   const scheds=DB.get('s')||[];
+  const notes=(DB.get('notes')||[]).filter(n=>n.date&&!n.done);
   const first=new Date(y,m,1),last=new Date(y,m+1,0),todayStr=today();
   const grid=document.getElementById('cal-grid'); grid.innerHTML='';
-  for(let i=0;i<first.getDay();i++) grid.appendChild(mkCell(new Date(y,m,-(first.getDay()-i-1)),'other-month',scheds,todayStr));
-  for(let d=1;d<=last.getDate();d++) grid.appendChild(mkCell(new Date(y,m,d),'',scheds,todayStr));
-  for(let i=1;i<7-last.getDay();i++) grid.appendChild(mkCell(new Date(y,m+1,i),'other-month',scheds,todayStr));
+  for(let i=0;i<first.getDay();i++) grid.appendChild(mkCell(new Date(y,m,-(first.getDay()-i-1)),'other-month',scheds,notes,todayStr));
+  for(let d=1;d<=last.getDate();d++) grid.appendChild(mkCell(new Date(y,m,d),'',scheds,notes,todayStr));
+  for(let i=1;i<7-last.getDay();i++) grid.appendChild(mkCell(new Date(y,m+1,i),'other-month',scheds,notes,todayStr));
 }
-function mkCell(dt,extra,scheds,todayStr){
-  const ds=localDateStr(dt);  // toISOString() 대신 로컬 날짜 사용 (UTC 변환 방지)
+function mkCell(dt,extra,scheds,notes,todayStr){
+  const ds=localDateStr(dt);
   const dow=dt.getDay();
   const cell=document.createElement('div');
   cell.className='cal-cell'+(extra?' '+extra:'')+(dow===0?' sun':dow===6?' sat':'')+
@@ -1828,7 +1834,8 @@ function mkCell(dt,extra,scheds,todayStr){
   const num=document.createElement('div'); num.className='cal-num'; num.textContent=dt.getDate();
   cell.appendChild(num);
   const ds_scheds=scheds.filter(s=>s.date===ds);
-  if(ds_scheds.length){
+  const ds_notes=(notes||[]).filter(n=>n.date===ds);
+  if(ds_scheds.length||ds_notes.length){
     const labels=document.createElement('div'); labels.className='cal-dots';
     ds_scheds.slice(0,2).forEach(s=>{
       const lbl=document.createElement('div');
@@ -1839,9 +1846,16 @@ function mkCell(dt,extra,scheds,todayStr){
       else if(s.status==='pending'){cls='pending';txt='미정';}
       else{cls=s.playType==='solo'?'solo':'join';txt=s.playType==='solo'?'단독':'조인';}
       lbl.className='cal-label '+cls;
-      // 상대방 일정은 연하게
-      if(!isOwn && !isCouple) lbl.style.opacity='.4';
+      if(!isOwn&&!isCouple) lbl.style.opacity='.4';
       lbl.textContent=txt;
+      labels.appendChild(lbl);
+    });
+    ds_notes.slice(0,1).forEach(n=>{
+      const lbl=document.createElement('div');
+      const catTxt={appointment:'약속',task:'업무',etc:'메모'};
+      lbl.className='cal-label';
+      lbl.style.cssText='background:#FDE8B0;color:#7A4E00;';
+      lbl.textContent='📌 '+(catTxt[n.category]||'메모');
       labels.appendChild(lbl);
     });
     cell.appendChild(labels);
@@ -2709,7 +2723,8 @@ function renderMiniStats_sync(){
 // ── 일정 탭 (1~12월 탭) ──
 async function renderScheduleTab(){
   const td=today();
-  const scheds=await DB.getS(); // 모든 일정 (내 것 + 상대방)
+  const scheds=await DB.getS();
+  const notes=(await DB.getNotes()).filter(n=>n.date); // 날짜 있는 메모만
   const tabRow=document.getElementById('month-tab-row'); tabRow.innerHTML='';
   for(let mi=0;mi<12;mi++){
     const has=scheds.some(s=>getMonth(s.date)===mi);
@@ -2723,12 +2738,42 @@ async function renderScheduleTab(){
   setTimeout(()=>{const a=tabRow.querySelector('.active');if(a)a.scrollIntoView({inline:'center',behavior:'smooth'});},50);
 
   const monthScheds=scheds.filter(s=>getMonth(s.date)===S.schedMonth).sort((a,b)=>a.date.localeCompare(b.date));
+  const monthNotes=notes.filter(n=>getMonth(n.date)===S.schedMonth).sort((a,b)=>a.date.localeCompare(b.date));
   const list=document.getElementById('schedule-list');
-  if(!monthScheds.length){
+  if(!monthScheds.length&&!monthNotes.length){
     list.innerHTML=`<div class="empty-state" style="padding:30px 0"><div class="icon">📅</div><p>${S.schedMonth+1}월 일정이 없습니다</p></div>`;
     return;
   }
-  list.innerHTML=monthScheds.map(s=>schedCardHTML(s)).join('');
+  // 날짜순으로 일정+메모 합쳐서 표시
+  const catLabel={appointment:'📅 약속',task:'📋 업무',etc:'💬 기타'};
+  const catCls={appointment:'note-cat-appointment',task:'note-cat-task',etc:'note-cat-etc'};
+  const noteCards=monthNotes.map(n=>{
+    const writer=USERS.find(x=>x.id===n.user_id);
+    return `<div style="background:var(--white);border-radius:var(--r-md);padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh-sm);display:flex;gap:12px;border-left:3px solid #E8C060;opacity:${n.done?'.55':'1'}">
+      <div style="text-align:center;min-width:44px;background:#FEF3DC;border-radius:10px;padding:8px 6px;flex-shrink:0">
+        <div style="font-size:22px;font-weight:900;color:#7A4E00;line-height:1">${new Date(n.date+'T00:00:00').getDate()}</div>
+        <div style="font-size:11px;color:#A07030;font-weight:700;margin-top:3px">${DAYS[new Date(n.date+'T00:00:00').getDay()]}</div>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span class="note-category ${catCls[n.category]||'note-cat-etc'}">${catLabel[n.category]||'기타'}</span>
+          ${n.done?'<span style="font-size:11px;color:var(--text-muted)">완료</span>':''}
+        </div>
+        <div style="font-size:15px;font-weight:600;color:${n.done?'var(--text-muted)':'var(--text-main)'};${n.done?'text-decoration:line-through':''}">${n.text}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px">${writer?.name||''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <div class="note-check${n.done?' done':''}" onclick="toggleNote('${n.id}');renderScheduleTab()"></div>
+        <button style="font-size:11px;color:var(--text-muted)" onclick="deleteNote('${n.id}')">✕</button>
+      </div>
+    </div>`;
+  });
+  // 날짜순 정렬해서 합치기
+  const allItems=[
+    ...monthScheds.map(s=>({date:s.date,html:schedCardHTML(s)})),
+    ...monthNotes.map((n,i)=>({date:n.date,html:noteCards[i]}))
+  ].sort((a,b)=>a.date.localeCompare(b.date));
+  list.innerHTML=allItems.map(x=>x.html).join('');
 }
 
 // ── 기록 탭 ──
@@ -2863,9 +2908,10 @@ async function renderStatsTab(){
 // ══════════════════════════════════════
 let _selNoteCat='etc';
 
-function openNoteSheet(){
+function openNoteSheet(preDate){
   _selNoteCat='etc';
   document.getElementById('note-text').value='';
+  document.getElementById('note-date').value=preDate||today();
   document.querySelectorAll('.note-cat-btn').forEach(b=>b.className='note-cat-btn');
   openSheet('note-sheet');
 }
@@ -2877,14 +2923,19 @@ function selectNoteCat(btn){
 async function saveNote(){
   const text=document.getElementById('note-text').value.trim();
   if(!text){alert('내용을 입력해주세요');return;}
+  const date=document.getElementById('note-date').value||null;
   const obj={
     id:uid(), user_id:S.user,
     category:_selNoteCat,
-    text, done:false,
+    text, done:false, date,
     created_at:Date.now(),
   };
   await DB.upsertNote(obj);
-  closeAllSheets(); await renderNotes();
+  closeAllSheets();
+  // 캘린더 & 일정 탭 갱신
+  renderCalendar();
+  if(S.tab==='schedule') await renderScheduleTab();
+  await renderNotes();
   showToast('📌 메모가 추가됐습니다');
 }
 async function toggleNote(id){
@@ -2896,6 +2947,8 @@ async function toggleNote(id){
 }
 async function deleteNote(id){
   await DB.delNote(id);
+  renderCalendar();
+  if(S.tab==='schedule') await renderScheduleTab();
   await renderNotes();
   showToast('메모를 삭제했습니다');
 }
@@ -2905,13 +2958,22 @@ async function renderNotes(){
   if(!notes.length){ el.innerHTML='<div class="no-schedule" style="padding:12px 0;font-size:13px">공유 메모가 없습니다</div>'; return; }
   const catLabel={appointment:'📅 약속',task:'📋 업무',etc:'💬 기타'};
   const catCls={appointment:'note-cat-appointment',task:'note-cat-task',etc:'note-cat-etc'};
-  const u=getUser;
-  el.innerHTML=notes.map(n=>{
+  // 날짜 있는 것 먼저, 그 다음 최신순
+  const sorted=[...notes].sort((a,b)=>{
+    if(a.date&&b.date) return a.date.localeCompare(b.date);
+    if(a.date) return -1; if(b.date) return 1;
+    return b.created_at-a.created_at;
+  });
+  el.innerHTML=sorted.map(n=>{
     const writer=USERS.find(x=>x.id===n.user_id);
-    return `<div class="note-card">
+    const dateStr=n.date?`<span style="font-size:11px;font-weight:700;color:var(--green-mid);margin-right:6px">📅 ${fmtDate(n.date)}</span>`:'';
+    return `<div class="note-card${n.done?' opacity-60':''}">
       <div class="note-check${n.done?' done':''}" onclick="toggleNote('${n.id}')"></div>
       <div class="note-body">
-        <span class="note-category ${catCls[n.category]||'note-cat-etc'}">${catLabel[n.category]||'기타'}</span>
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px">
+          <span class="note-category ${catCls[n.category]||'note-cat-etc'}">${catLabel[n.category]||'기타'}</span>
+          ${dateStr}
+        </div>
         <div class="note-text${n.done?' done':''}">${n.text}</div>
         <div class="note-meta">${writer?.name||''} · ${new Date(n.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</div>
       </div>
