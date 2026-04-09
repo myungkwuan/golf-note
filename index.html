@@ -1010,7 +1010,7 @@ textarea.form-input{resize:none;min-height:72px}
 <div class="bottom-sheet" id="note-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
-    <span class="sheet-title">메모 추가</span>
+    <span class="sheet-title" id="note-sheet-title">메모 추가</span>
     <button class="sheet-close" onclick="closeAllSheets()">✕</button>
   </div>
   <div class="sheet-body">
@@ -1034,6 +1034,7 @@ textarea.form-input{resize:none;min-height:72px}
     </div>
     <div class="form-submit-row">
       <button class="btn-submit" onclick="saveNote()">저장</button>
+      <button class="btn-delete" id="note-delete-btn" onclick="deleteCurrentNote()" style="display:none">삭제</button>
     </div>
   </div>
 </div>
@@ -1099,6 +1100,11 @@ textarea.form-input{resize:none;min-height:72px}
       <div class="status-btn-group">
         <button class="status-btn" data-play="join" onclick="selectPlayType(this)">👥 조인플레이</button>
         <button class="status-btn" data-play="solo" onclick="selectPlayType(this)">🧍 단독팀</button>
+        <button class="status-btn" data-play="etc" onclick="selectPlayType(this)">📝 기타</button>
+      </div>
+      <!-- 기타 선택 시 메모 입력란 -->
+      <div id="sched-etc-memo-wrap" style="display:none;margin-top:8px">
+        <input type="text" class="form-input" id="sched-etc-memo" placeholder="내용 입력 (예: 병원, 미팅, 여행)">
       </div>
     </div>
     <div class="form-group">
@@ -1939,6 +1945,11 @@ async function openScheduleSheet(id){
     document.getElementById('sched-tee').value=s.teeTime||'';
     S.selStatus=s.status;
     S.playType=s.playType||'join';
+    // 기타 메모
+    const etcWrap=document.getElementById('sched-etc-memo-wrap');
+    const etcInp=document.getElementById('sched-etc-memo');
+    if(etcWrap) etcWrap.style.display=S.playType==='etc'?'block':'none';
+    if(etcInp) etcInp.value=s.etcMemo||'';
     // 공유 일정이면 수정 범위 선택 표시
     if(s.isCouple){
       coupleRow.style.display='none';
@@ -1949,6 +1960,10 @@ async function openScheduleSheet(id){
     document.getElementById('sched-date').value=S.selDay||today();
     ['sched-course','sched-course-name','sched-companions','sched-tee'].forEach(eid=>document.getElementById(eid).value='');
     S.selStatus='confirmed'; S.playType='join';
+    const etcWrap=document.getElementById('sched-etc-memo-wrap');
+    if(etcWrap) etcWrap.style.display='none';
+    const etcInp=document.getElementById('sched-etc-memo');
+    if(etcInp) etcInp.value='';
   }
   updateStatusBtns(); updatePlayTypeBtns(); openSheet('sched-sheet');
 }
@@ -1959,7 +1974,13 @@ function updateStatusBtns(){
     if(b.dataset.status===S.selStatus) b.classList.add('sel-'+S.selStatus);
   });
 }
-function selectPlayType(btn){S.playType=btn.dataset.play;updatePlayTypeBtns();}
+function selectPlayType(btn){
+  S.playType=btn.dataset.play;
+  updatePlayTypeBtns();
+  // 기타 선택 시 메모 입력란 표시
+  const wrap=document.getElementById('sched-etc-memo-wrap');
+  if(wrap) wrap.style.display=S.playType==='etc'?'block':'none';
+}
 function updatePlayTypeBtns(){
   document.querySelectorAll('.status-btn[data-play]').forEach(b=>{
     b.className='status-btn';
@@ -1978,16 +1999,21 @@ function selectEditScope(scope){
 async function saveSchedule(){
   const course=document.getElementById('sched-course').value.trim();
   const date=document.getElementById('sched-date').value;
-  if(!course||!date){alert('날짜와 골프장을 입력해주세요');return;}
+  const etcMemo=document.getElementById('sched-etc-memo')?.value.trim()||'';
+  // 기타 유형은 내용만 있으면 저장 가능
+  const isEtc=S.playType==='etc';
+  if(!date){alert('날짜를 입력해주세요');return;}
+  if(!isEtc&&!course){alert('골프장을 입력해주세요');return;}
+  if(isEtc&&!etcMemo&&!course){alert('내용을 입력해주세요');return;}
 
   const base={
     id:S.editSId||uid(), userId:S.user, date,
     time:document.getElementById('sched-tee').value,
-    course, courseName:document.getElementById('sched-course-name').value.trim(),
+    course:course||(isEtc?etcMemo:''), courseName:document.getElementById('sched-course-name').value.trim(),
     companions:document.getElementById('sched-companions').value.trim(),
     teeTime:document.getElementById('sched-tee').value.trim(),
     status:S.selStatus, roundId:null, createdAt:Date.now(),
-    playType:S.playType,
+    playType:S.playType, etcMemo:etcMemo,
     isCouple:false, coupleGroupId:null,
   };
 
@@ -2451,8 +2477,12 @@ function schedCardHTML(s){
     </div>
     <div class="sched-info">
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px">
-        <span class="sched-course-name" style="margin-bottom:0">${s.course}</span>
-        <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0;${s.playType==='solo'?'background:#CCF0DC;color:#0F5C30':'background:#E0D8FF;color:#4A2FBE'}">${s.playType==='solo'?'단독':'조인'}</span>
+        <span class="sched-course-name" style="margin-bottom:0">${s.playType==='etc'?(s.etcMemo||s.course||'기타'):s.course}</span>
+        <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0;${
+          s.playType==='solo'?'background:#CCF0DC;color:#0F5C30':
+          s.playType==='etc'?'background:#E8EFEB;color:#374D41':
+          'background:#E0D8FF;color:#4A2FBE'
+        }">${s.playType==='solo'?'단독':s.playType==='etc'?'📝 기타':'조인'}</span>
         ${!isOwn?`<span style="font-size:11px;font-weight:600;color:var(--text-muted)">${partner?.name||''}</span>`:''}
         ${isCouple&&isOwn?`<span style="font-size:11px;font-weight:700;color:var(--gold)">💑공동</span>`:''}
       </div>
@@ -2763,18 +2793,20 @@ async function renderScheduleTab(){
   const catCls={appointment:'note-cat-appointment',task:'note-cat-task',etc:'note-cat-etc'};
   const noteCards=monthNotes.map(n=>{
     const writer=USERS.find(x=>x.id===n.user_id);
-    return `<div style="background:var(--white);border-radius:var(--r-md);padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh-sm);display:flex;gap:12px;border-left:3px solid #E8C060;opacity:${n.done?'.55':'1'}">
+    const isOwn=n.user_id===S.user;
+    const opacity=!isOwn&&!n.done?'opacity:.5;':'';
+    return `<div style="background:var(--white);border-radius:var(--r-md);padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh-sm);display:flex;gap:12px;border-left:3px solid #E8C060;${opacity}${n.done?'opacity:.55;':''}">
       <div style="text-align:center;min-width:44px;background:#FEF3DC;border-radius:10px;padding:8px 6px;flex-shrink:0">
         <div style="font-size:22px;font-weight:900;color:#7A4E00;line-height:1">${new Date(n.date+'T00:00:00').getDate()}</div>
         <div style="font-size:11px;color:#A07030;font-weight:700;margin-top:3px">${DAYS[new Date(n.date+'T00:00:00').getDay()]}</div>
       </div>
-      <div style="flex:1">
+      <div style="flex:1;cursor:${isOwn?'pointer':'default'}" onclick="${isOwn?`openNoteEdit('${n.id}')`:``}">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
           <span class="note-category ${catCls[n.category]||'note-cat-etc'}">${catLabel[n.category]||'기타'}</span>
           ${n.done?'<span style="font-size:11px;color:var(--text-muted)">완료</span>':''}
         </div>
         <div style="font-size:15px;font-weight:600;color:${n.done?'var(--text-muted)':'var(--text-main)'};${n.done?'text-decoration:line-through':''}">${n.text}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:3px">${writer?.name||''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px">${writer?.name||''}${isOwn?' · 탭해서 수정':''}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
         <div class="note-check${n.done?' done':''}" onclick="toggleNote('${n.id}');renderScheduleTab()"></div>
@@ -2922,12 +2954,41 @@ async function renderStatsTab(){
 // ══════════════════════════════════════
 let _selNoteCat='etc';
 
+let _editNoteId=null;
+
 function openNoteSheet(preDate){
+  _editNoteId=null;
   _selNoteCat='etc';
   document.getElementById('note-text').value='';
   document.getElementById('note-date').value=preDate||today();
+  document.getElementById('note-sheet-title').textContent='메모 추가';
+  document.getElementById('note-delete-btn').style.display='none';
   document.querySelectorAll('.note-cat-btn').forEach(b=>b.className='note-cat-btn');
   openSheet('note-sheet');
+}
+async function openNoteEdit(id){
+  const notes=await DB.getNotes();
+  const n=notes.find(x=>x.id===id); if(!n) return;
+  _editNoteId=id;
+  _selNoteCat=n.category||'etc';
+  document.getElementById('note-text').value=n.text||'';
+  document.getElementById('note-date').value=n.date||today();
+  document.getElementById('note-sheet-title').textContent='메모 수정';
+  document.getElementById('note-delete-btn').style.display='flex';
+  document.querySelectorAll('.note-cat-btn').forEach(b=>b.className='note-cat-btn');
+  const selBtn=document.querySelector(`.note-cat-btn[data-cat="${_selNoteCat}"]`);
+  if(selBtn) selBtn.className='note-cat-btn sel-'+_selNoteCat;
+  openSheet('note-sheet');
+}
+async function deleteCurrentNote(){
+  if(!_editNoteId) return;
+  if(!confirm('메모를 삭제할까요?')) return;
+  await DB.delNote(_editNoteId);
+  closeAllSheets();
+  renderCalendar();
+  if(S.tab==='schedule') await renderScheduleTab();
+  await renderNotes();
+  showToast('메모를 삭제했습니다');
 }
 function selectNoteCat(btn){
   _selNoteCat=btn.dataset.cat;
@@ -2939,18 +3000,17 @@ async function saveNote(){
   if(!text){alert('내용을 입력해주세요');return;}
   const date=document.getElementById('note-date').value||null;
   const obj={
-    id:uid(), user_id:S.user,
+    id:_editNoteId||uid(), user_id:S.user,
     category:_selNoteCat,
     text, done:false, date,
-    created_at:Date.now(),
+    created_at:_editNoteId?(await DB.getNotes()).find(x=>x.id===_editNoteId)?.created_at||Date.now():Date.now(),
   };
   await DB.upsertNote(obj);
   closeAllSheets();
-  // 캘린더 & 일정 탭 갱신
   renderCalendar();
   if(S.tab==='schedule') await renderScheduleTab();
   await renderNotes();
-  showToast('📌 메모가 추가됐습니다');
+  showToast(_editNoteId?'메모가 수정됐습니다':'📌 메모가 추가됐습니다');
 }
 async function toggleNote(id){
   const notes=await DB.getNotes();
@@ -2972,7 +3032,6 @@ async function renderNotes(){
   if(!notes.length){ el.innerHTML='<div class="no-schedule" style="padding:12px 0;font-size:13px">공유 메모가 없습니다</div>'; return; }
   const catLabel={appointment:'📅 약속',task:'📋 업무',etc:'💬 기타'};
   const catCls={appointment:'note-cat-appointment',task:'note-cat-task',etc:'note-cat-etc'};
-  // 날짜 있는 것 먼저, 그 다음 최신순
   const sorted=[...notes].sort((a,b)=>{
     if(a.date&&b.date) return a.date.localeCompare(b.date);
     if(a.date) return -1; if(b.date) return 1;
@@ -2980,16 +3039,18 @@ async function renderNotes(){
   });
   el.innerHTML=sorted.map(n=>{
     const writer=USERS.find(x=>x.id===n.user_id);
+    const isOwn=n.user_id===S.user;
+    const opacity=(!isOwn&&!n.done)?'opacity:.5;':n.done?'opacity:.55;':'';
     const dateStr=n.date?`<span style="font-size:11px;font-weight:700;color:var(--green-mid);margin-right:6px">📅 ${fmtDate(n.date)}</span>`:'';
-    return `<div class="note-card${n.done?' opacity-60':''}">
+    return `<div class="note-card" style="${opacity}">
       <div class="note-check${n.done?' done':''}" onclick="toggleNote('${n.id}')"></div>
-      <div class="note-body">
+      <div class="note-body" onclick="${isOwn?`openNoteEdit('${n.id}')`:''}" style="${isOwn?'cursor:pointer':''}">
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px">
           <span class="note-category ${catCls[n.category]||'note-cat-etc'}">${catLabel[n.category]||'기타'}</span>
           ${dateStr}
         </div>
         <div class="note-text${n.done?' done':''}">${n.text}</div>
-        <div class="note-meta">${writer?.name||''} · ${new Date(n.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</div>
+        <div class="note-meta">${writer?.name||''}${isOwn?' · 탭해서 수정':''}</div>
       </div>
       <button class="note-del" onclick="deleteNote('${n.id}')">✕</button>
     </div>`;
