@@ -1437,7 +1437,10 @@ function showIOSGuide(){
 
 // ── 더미 데이터 (localStorage 직접 저장 — 초기 1회만) ──
 function initDummy(){
-  if(DB.get('_v3')) return;
+  // _v3 있으면 기존 사용자 — 더미 덮어쓰지 않고 버전만 업데이트
+  if(DB.get('_v3')){ DB.set('_v4',true); return; }
+  // 완전 새 사용자만 더미 데이터 생성
+  if(DB.get('_v4')) return;
   const now=new Date(), y=now.getFullYear(), m=now.getMonth();
   // 로컬 시간 기준 날짜 계산 (toISOString은 UTC라 하루 오차)
   const fmt=offset=>{
@@ -1446,11 +1449,11 @@ function initDummy(){
   };
   const fmtAbs=d=>localDateStr(d);
   DB.set('s',[
-    {id:'s1',userId:'mk',date:fmt(6),time:'07:30',course:'사우스스프링스 CC',courseName:'동코스',companions:'백민영, 김철수',teeTime:'1번홀 07:30',status:'confirmed',roundId:null,isCouple:true,coupleGroupId:'cg1',createdAt:Date.now()},
-    {id:'s2',userId:'my',date:fmt(6),time:'07:30',course:'사우스스프링스 CC',courseName:'동코스',companions:'장명관, 김철수',teeTime:'1번홀 07:30',status:'confirmed',roundId:null,isCouple:true,coupleGroupId:'cg1',createdAt:Date.now()},
-    {id:'s3',userId:'mk',date:fmt(14),time:'10:00',course:'파인크리크 GC',courseName:'레이크코스',companions:'박부장, 최차장',teeTime:'2번홀 10:00',status:'pending',roundId:null,isCouple:false,coupleGroupId:null,createdAt:Date.now()},
-    {id:'s4',userId:'my',date:fmt(-4),time:'08:00',course:'베어크리크 GC',courseName:'A코스',companions:'장명관',teeTime:'1번홀 08:00',status:'confirmed',roundId:'r3',isCouple:false,coupleGroupId:null,createdAt:Date.now()},
-    {id:'s5',userId:'mk',date:fmt(-26),time:'07:00',course:'블루원 상주',courseName:'블루코스',companions:'이팀장',teeTime:'1번홀 07:00',status:'confirmed',roundId:'r1',isCouple:false,coupleGroupId:null,createdAt:Date.now()-86400000*26},
+    {id:'s1',userId:'mk',date:fmt(6),time:'07:30',course:'사우스스프링스 CC',courseName:'동코스',companions:'백민영, 김철수',teeTime:'1번홀 07:30',status:'confirmed',roundId:null,isCouple:true,coupleGroupId:'cg1',playType:'join',noCaddie:false,createdAt:Date.now()},
+    {id:'s2',userId:'my',date:fmt(6),time:'07:30',course:'사우스스프링스 CC',courseName:'동코스',companions:'장명관, 김철수',teeTime:'1번홀 07:30',status:'confirmed',roundId:null,isCouple:true,coupleGroupId:'cg1',playType:'join',noCaddie:false,createdAt:Date.now()},
+    {id:'s3',userId:'mk',date:fmt(14),time:'10:00',course:'파인크리크 GC',courseName:'레이크코스',companions:'박부장, 최차장',teeTime:'2번홀 10:00',status:'pending',roundId:null,isCouple:false,coupleGroupId:null,playType:'join',noCaddie:false,createdAt:Date.now()},
+    {id:'s4',userId:'my',date:fmt(-4),time:'08:00',course:'베어크리크 GC',courseName:'A코스',companions:'장명관',teeTime:'1번홀 08:00',status:'confirmed',roundId:'r3',isCouple:false,coupleGroupId:null,playType:'join',noCaddie:false,createdAt:Date.now()},
+    {id:'s5',userId:'mk',date:fmt(-26),time:'07:00',course:'블루원 상주',courseName:'블루코스',companions:'이팀장',teeTime:'1번홀 07:00',status:'confirmed',roundId:'r1',isCouple:false,coupleGroupId:null,playType:'solo',noCaddie:false,createdAt:Date.now()-86400000*26},
     {id:'s6',userId:'mk',date:fmtAbs(new Date(y,m-1,15)),time:'08:30',course:'남서울 CC',courseName:'동코스',companions:'박차장',teeTime:'1번홀 08:30',status:'confirmed',roundId:'r5',isCouple:false,coupleGroupId:null,createdAt:Date.now()-86400000*50},
   ]);
   DB.set('r',[
@@ -1461,7 +1464,9 @@ function initDummy(){
     {id:'r5',userId:'mk',date:fmtAbs(new Date(y,m-1,15)),course:'남서울 CC',courseName:'동코스',totalScore:94,puttCount:35,holeScores:null,mistakes:[{type:'생크',count:1},{type:'슬라이스',count:2}],memo:'전반 잘 쳤으나 후반 무너짐',createdAt:Date.now()-86400000*50},
   ]);
   DB.set('_v3',true);
+  DB.set('_v4',true); // playType 추가 버전
 }
+
 
 // ── 상태 ──
 let S={
@@ -1884,6 +1889,7 @@ function mkCell(dt,extra,scheds,notes,todayStr){
       const catTxt={appointment:'약속',task:'업무',etc:'메모'};
       lbl.className='cal-label';
       lbl.style.cssText='background:#FDE8B0;color:#7A4E00;';
+      if(n.user_id!==S.user) lbl.style.opacity='.45';
       lbl.textContent='📌 '+(catTxt[n.category]||'메모');
       labels.appendChild(lbl);
     });
