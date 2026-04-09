@@ -1099,12 +1099,20 @@ textarea.form-input{resize:none;min-height:72px}
       <label class="form-label">플레이 유형</label>
       <div class="status-btn-group">
         <button class="status-btn" data-play="join" onclick="selectPlayType(this)">👥 조인플레이</button>
-        <button class="status-btn" data-play="solo" onclick="selectPlayType(this)">🧍 단독팀</button>
+        <button class="status-btn" data-play="solo" onclick="selectPlayType(this)">📋 예약</button>
         <button class="status-btn" data-play="etc" onclick="selectPlayType(this)">📝 기타</button>
       </div>
       <!-- 기타 선택 시 메모 입력란 -->
       <div id="sched-etc-memo-wrap" style="display:none;margin-top:8px">
         <input type="text" class="form-input" id="sched-etc-memo" placeholder="내용 입력 (예: 병원, 미팅, 여행)">
+      </div>
+    </div>
+    <!-- 노캐디 선택 -->
+    <div class="form-group">
+      <label class="form-label">캐디</label>
+      <div style="display:flex;gap:8px">
+        <button class="status-btn" id="caddie-btn" onclick="toggleNoCaddie()" style="flex:none;padding:10px 16px">🏌️ 캐디 있음</button>
+        <button class="status-btn" id="nocaddie-btn" onclick="toggleNoCaddie()" style="flex:none;padding:10px 16px">🚶 노캐디</button>
       </div>
     </div>
     <div class="form-group">
@@ -1461,7 +1469,8 @@ let S={
   calY:new Date().getFullYear(),calM:new Date().getMonth(),
   selDay:null,editSId:null,editRId:null,
   selStatus:'confirmed',selMistakes:{},activeMistake:null,
-  playType:'join',  // 'join' | 'solo'
+  playType:'join',  // 'join' | 'solo' | 'etc'
+  noCaddie:false,
   roundFilter:'all',statsCount:5,
   schedMonth:new Date().getMonth(),
   scoreMode:'simple',
@@ -1863,7 +1872,7 @@ function mkCell(dt,extra,scheds,notes,todayStr){
         let cls,txt;
         if(s.status==='cancelled'){cls='cancelled';txt='취소';}
         else if(s.status==='pending'){cls='pending';txt='미정';}
-        else{cls=s.playType==='solo'?'solo':'join';txt=s.playType==='solo'?'단독':'조인';}
+        else{cls=s.playType==='solo'?'solo':'join';txt=s.playType==='solo'?'예약':'조인';}
         lbl.className='cal-label '+cls;
         if(!isOwn&&!isCouple) lbl.style.opacity='.4';
         lbl.textContent=txt;
@@ -1945,6 +1954,7 @@ async function openScheduleSheet(id){
     document.getElementById('sched-tee').value=s.teeTime||'';
     S.selStatus=s.status;
     S.playType=s.playType||'join';
+    S.noCaddie=!!s.noCaddie;
     // 기타 메모
     const etcWrap=document.getElementById('sched-etc-memo-wrap');
     const etcInp=document.getElementById('sched-etc-memo');
@@ -1959,13 +1969,13 @@ async function openScheduleSheet(id){
   } else {
     document.getElementById('sched-date').value=S.selDay||today();
     ['sched-course','sched-course-name','sched-companions','sched-tee'].forEach(eid=>document.getElementById(eid).value='');
-    S.selStatus='confirmed'; S.playType='join';
+    S.selStatus='confirmed'; S.playType='join'; S.noCaddie=false;
     const etcWrap=document.getElementById('sched-etc-memo-wrap');
     if(etcWrap) etcWrap.style.display='none';
     const etcInp=document.getElementById('sched-etc-memo');
     if(etcInp) etcInp.value='';
   }
-  updateStatusBtns(); updatePlayTypeBtns(); openSheet('sched-sheet');
+  updateStatusBtns(); updatePlayTypeBtns(); updateNoCaddieUI(); openSheet('sched-sheet');
 }
 function selectStatus(btn){S.selStatus=btn.dataset.status;updateStatusBtns();}
 function updateStatusBtns(){
@@ -1987,8 +1997,18 @@ function updatePlayTypeBtns(){
     if(b.dataset.play===S.playType) b.classList.add(S.playType==='join'?'sel-confirmed':'sel-pending');
   });
 }
+function toggleNoCaddie(){
+  S.noCaddie=!S.noCaddie;
+  updateNoCaddieUI();
+}
+function updateNoCaddieUI(){
+  const c=document.getElementById('caddie-btn');
+  const n=document.getElementById('nocaddie-btn');
+  if(!c||!n) return;
+  c.className='status-btn'+(S.noCaddie?'':' sel-confirmed');
+  n.className='status-btn'+(S.noCaddie?' sel-pending':'');
+}
 function onCoupleToggle(){
-  S.coupleMode=document.getElementById('sched-couple-toggle').checked;
 }
 function selectEditScope(scope){
   S.editScope=scope;
@@ -2013,7 +2033,7 @@ async function saveSchedule(){
     companions:document.getElementById('sched-companions').value.trim(),
     teeTime:document.getElementById('sched-tee').value.trim(),
     status:S.selStatus, roundId:null, createdAt:Date.now(),
-    playType:S.playType, etcMemo:etcMemo,
+    playType:S.playType, etcMemo:etcMemo, noCaddie:S.noCaddie,
     isCouple:false, coupleGroupId:null,
   };
 
@@ -2482,7 +2502,8 @@ function schedCardHTML(s){
           s.playType==='solo'?'background:#CCF0DC;color:#0F5C30':
           s.playType==='etc'?'background:#E8EFEB;color:#374D41':
           'background:#E0D8FF;color:#4A2FBE'
-        }">${s.playType==='solo'?'단독':s.playType==='etc'?'📝 기타':'조인'}</span>
+        }">${s.playType==='solo'?'예약':s.playType==='etc'?'📝 기타':'조인'}</span>
+        ${s.noCaddie?`<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FEF3DC;color:#7A4E00">노캐디</span>`:''}
         ${!isOwn?`<span style="font-size:11px;font-weight:600;color:var(--text-muted)">${partner?.name||''}</span>`:''}
         ${isCouple&&isOwn?`<span style="font-size:11px;font-weight:700;color:var(--gold)">💑공동</span>`:''}
       </div>
