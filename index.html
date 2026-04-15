@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v2.3 -->
+<!-- 골프노트 v2.4 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1952,6 +1952,7 @@ async function openScheduleSheet(id){
   const editRow=document.getElementById('sched-couple-edit-row');
   // 버튼 초기화
   S.coupleMode=false;
+  window._coupleOn=false;
   const cBtn=document.getElementById('couple-mode-btn');
   if(cBtn){
     cBtn.textContent='💑 부부 함께 등록 — OFF';
@@ -2027,19 +2028,15 @@ function updateNoCaddieUI(){
   n.className='status-btn'+(S.noCaddie?' sel-pending':'');
 }
 function toggleCoupleMode(){
-  S.coupleMode=!S.coupleMode;
+  window._coupleOn = !window._coupleOn;
   const btn=document.getElementById('couple-mode-btn');
   if(!btn) return;
-  if(S.coupleMode){
-    btn.textContent='💑 부부 함께 등록 — ON';
-    btn.style.background='var(--green-mid)';
-    btn.style.color='#fff';
-    btn.style.borderColor='var(--green-mid)';
+  if(window._coupleOn){
+    btn.textContent='💑 부부 함께 등록 — ON ✓';
+    btn.style.cssText='width:100%;padding:12px 16px;border-radius:var(--r-md);font-size:14px;font-weight:700;background:var(--green-mid);color:#fff;border:2px solid var(--green-mid);display:flex;align-items:center;justify-content:center;gap:8px;';
   } else {
     btn.textContent='💑 부부 함께 등록 — OFF';
-    btn.style.background='var(--gray-100)';
-    btn.style.color='var(--text-sub)';
-    btn.style.borderColor='var(--gray-200)';
+    btn.style.cssText='width:100%;padding:12px 16px;border-radius:var(--r-md);font-size:14px;font-weight:700;background:var(--gray-100);color:var(--text-sub);border:2px solid var(--gray-200);display:flex;align-items:center;justify-content:center;gap:8px;';
   }
 }
 function onCoupleToggle(){
@@ -2052,9 +2049,8 @@ function selectEditScope(scope){
 }
 
 async function saveSchedule(){
-  // 버튼 상태에서 직접 읽기 (S.coupleMode 대신)
-  const coupleModeOn = document.getElementById('couple-mode-btn')?.textContent.includes('ON') || false;
-  S.coupleMode = coupleModeOn;
+  // 전역 변수로 직접 읽기
+  S.coupleMode = window._coupleOn === true;
   const course=document.getElementById('sched-course').value.trim();
   const date=document.getElementById('sched-date').value;
   const etcMemo=document.getElementById('sched-etc-memo')?.value.trim()||'';
