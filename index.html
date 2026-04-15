@@ -2469,11 +2469,19 @@ async function renderAll(){
   await renderRecentRounds();
   renderMiniStats_sync();
   await renderNotes();
+  renderCalendar(); // Supabase 로드 후 재렌더
   if(S.tab==='schedule') await renderScheduleTab();
   if(S.tab==='record') await renderRecordTab();
   if(S.tab==='stats') await renderStatsTab();
 }
-async function renderHome(){renderCalendar();await renderUpcoming();await renderRecentRounds();renderMiniStats_sync();await renderNotes();}
+async function renderHome(){
+  renderCalendar();
+  await renderUpcoming();
+  await renderRecentRounds();
+  renderMiniStats_sync();
+  await renderNotes();
+  renderCalendar(); // Supabase 로드 후 재렌더
+}
 
 async function renderUpcoming(){
   const td=today();
