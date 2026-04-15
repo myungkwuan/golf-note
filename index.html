@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v2.2 -->
+<!-- 골프노트 v2.3 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2052,6 +2052,9 @@ function selectEditScope(scope){
 }
 
 async function saveSchedule(){
+  // 버튼 상태에서 직접 읽기 (S.coupleMode 대신)
+  const coupleModeOn = document.getElementById('couple-mode-btn')?.textContent.includes('ON') || false;
+  S.coupleMode = coupleModeOn;
   const course=document.getElementById('sched-course').value.trim();
   const date=document.getElementById('sched-date').value;
   const etcMemo=document.getElementById('sched-etc-memo')?.value.trim()||'';
