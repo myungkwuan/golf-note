@@ -1833,12 +1833,13 @@ function changeMonth(d){
   S.calM+=d;
   if(S.calM<0){S.calM=11;S.calY--;}
   if(S.calM>11){S.calM=0;S.calY++;}
-  S.selDay=null; renderCalendar(); renderUpcoming();
+  S.selDay=null; await renderCalendar(); renderUpcoming();
 }
-function renderCalendar(){
+async function renderCalendar(){
   const {calY:y,calM:m}=S;
   document.getElementById('cal-title').textContent=`${y}년 ${m+1}월`;
-  const scheds=DB.get('s')||[];
+  // Supabase에서 직접 불러와야 상대방 일정도 포함됨
+  const scheds=await DB.getS();
   const notes=(DB.get('notes')||[]).filter(n=>n.date&&!n.done);
   const first=new Date(y,m,1),last=new Date(y,m+1,0),todayStr=today();
   const grid=document.getElementById('cal-grid'); grid.innerHTML='';
@@ -2464,23 +2465,21 @@ async function deleteRound(){
 
 // ── 렌더링 ──
 async function renderAll(){
-  renderCalendar();
+  await renderCalendar();
   await renderUpcoming();
   await renderRecentRounds();
   renderMiniStats_sync();
   await renderNotes();
-  renderCalendar(); // Supabase 로드 후 재렌더
   if(S.tab==='schedule') await renderScheduleTab();
   if(S.tab==='record') await renderRecordTab();
   if(S.tab==='stats') await renderStatsTab();
 }
 async function renderHome(){
-  renderCalendar();
+  await renderCalendar();
   await renderUpcoming();
   await renderRecentRounds();
   renderMiniStats_sync();
   await renderNotes();
-  renderCalendar(); // Supabase 로드 후 재렌더
 }
 
 async function renderUpcoming(){
