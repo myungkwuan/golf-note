@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v2.1 -->
+<!-- 골프노트 v2.2 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1125,14 +1125,14 @@ textarea.form-input{resize:none;min-height:72px}
     </div>
     <!-- 부부 함께 등록 토글 -->
     <div class="couple-toggle-row" id="sched-couple-row">
-      <div class="couple-toggle-left">
-        <div class="couple-toggle-label">💑 부부 함께 등록</div>
-        <div class="couple-toggle-sub">두 명 일정에 동시에 추가됩니다</div>
-      </div>
-      <label class="couple-switch">
-        <input type="checkbox" id="sched-couple-toggle" onchange="onCoupleToggle()">
-        <span class="slider"></span>
-      </label>
+      <button id="couple-mode-btn" onclick="toggleCoupleMode()" style="
+        width:100%;padding:12px 16px;border-radius:var(--r-md);
+        font-size:14px;font-weight:700;
+        background:var(--gray-100);color:var(--text-sub);
+        border:2px solid var(--gray-200);
+        display:flex;align-items:center;justify-content:center;gap:8px;
+        transition:all .2s;
+      ">💑 부부 함께 등록 — OFF</button>
     </div>
     <!-- 수정 시: 나만 수정 / 둘 다 수정 -->
     <div id="sched-couple-edit-row" style="display:none">
@@ -1621,6 +1621,8 @@ const DB = {
         const localOnly=local.filter(s=>!sbIds.has(s.id));
         const merged=[...sbScheds,...localOnly];
         DB.set('s',merged);
+        // Supabase 로드 완료 후 캘린더 재렌더
+        renderCalendar();
         return merged;
       }
     }
@@ -1829,17 +1831,17 @@ function switchTab(tab){
 }
 
 // ── 캘린더 ──
-async function changeMonth(d){
+function changeMonth(d){
   S.calM+=d;
   if(S.calM<0){S.calM=11;S.calY--;}
   if(S.calM>11){S.calM=0;S.calY++;}
-  S.selDay=null; await renderCalendar(); renderUpcoming();
+  S.selDay=null; renderCalendar();
 }
-async function renderCalendar(){
+function renderCalendar(){
   const {calY:y,calM:m}=S;
   document.getElementById('cal-title').textContent=`${y}년 ${m+1}월`;
-  // Supabase에서 직접 불러와야 상대방 일정도 포함됨
-  const scheds=await DB.getS();
+  // localStorage 캐시 사용 (저장 즉시 반영)
+  const scheds=DB.get('s')||[];
   const notes=(DB.get('notes')||[]).filter(n=>n.date&&!n.done);
   const first=new Date(y,m,1),last=new Date(y,m+1,0),todayStr=today();
   const grid=document.getElementById('cal-grid'); grid.innerHTML='';
@@ -1946,10 +1948,17 @@ async function openScheduleSheet(id){
   document.getElementById('sched-sheet-title').textContent=id?'일정 수정':'일정 추가';
   document.getElementById('sched-delete-btn').style.display=id?'flex':'none';
   // 부부 토글 초기화
-  const coupleToggle=document.getElementById('sched-couple-toggle');
   const coupleRow=document.getElementById('sched-couple-row');
   const editRow=document.getElementById('sched-couple-edit-row');
-  coupleToggle.checked=false;
+  // 버튼 초기화
+  S.coupleMode=false;
+  const cBtn=document.getElementById('couple-mode-btn');
+  if(cBtn){
+    cBtn.textContent='💑 부부 함께 등록 — OFF';
+    cBtn.style.background='var(--gray-100)';
+    cBtn.style.color='var(--text-sub)';
+    cBtn.style.borderColor='var(--gray-200)';
+  }
   coupleRow.style.display='flex'; editRow.style.display='none';
 
   if(id){
@@ -2017,7 +2026,24 @@ function updateNoCaddieUI(){
   c.className='status-btn'+(S.noCaddie?'':' sel-confirmed');
   n.className='status-btn'+(S.noCaddie?' sel-pending':'');
 }
+function toggleCoupleMode(){
+  S.coupleMode=!S.coupleMode;
+  const btn=document.getElementById('couple-mode-btn');
+  if(!btn) return;
+  if(S.coupleMode){
+    btn.textContent='💑 부부 함께 등록 — ON';
+    btn.style.background='var(--green-mid)';
+    btn.style.color='#fff';
+    btn.style.borderColor='var(--green-mid)';
+  } else {
+    btn.textContent='💑 부부 함께 등록 — OFF';
+    btn.style.background='var(--gray-100)';
+    btn.style.color='var(--text-sub)';
+    btn.style.borderColor='var(--gray-200)';
+  }
+}
 function onCoupleToggle(){
+  S.coupleMode=document.getElementById('sched-couple-toggle')?.checked||false;
 }
 function selectEditScope(scope){
   S.editScope=scope;
@@ -2465,7 +2491,7 @@ async function deleteRound(){
 
 // ── 렌더링 ──
 async function renderAll(){
-  await renderCalendar();
+  renderCalendar();
   await renderUpcoming();
   await renderRecentRounds();
   renderMiniStats_sync();
@@ -2475,7 +2501,7 @@ async function renderAll(){
   if(S.tab==='stats') await renderStatsTab();
 }
 async function renderHome(){
-  await renderCalendar();
+  renderCalendar();
   await renderUpcoming();
   await renderRecentRounds();
   renderMiniStats_sync();
