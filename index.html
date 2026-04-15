@@ -1829,7 +1829,7 @@ function switchTab(tab){
 }
 
 // ── 캘린더 ──
-function changeMonth(d){
+async function changeMonth(d){
   S.calM+=d;
   if(S.calM<0){S.calM=11;S.calY--;}
   if(S.calM>11){S.calM=0;S.calY++;}
