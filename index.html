@@ -1724,6 +1724,7 @@ function schedToSb(s){ return {
   status:s.status, round_id:s.roundId||null,
   is_couple:!!s.isCouple, couple_group_id:s.coupleGroupId||null,
   play_type:s.playType||'join',
+  no_caddie:!!s.noCaddie,
   created_at:s.createdAt,
 };}
 function sbToSched(r){ return {
@@ -1733,6 +1734,7 @@ function sbToSched(r){ return {
   status:r.status||'confirmed', roundId:r.round_id||null,
   isCouple:r.is_couple||false, coupleGroupId:r.couple_group_id||null,
   playType:r.play_type||'join',
+  noCaddie:r.no_caddie||false,
   createdAt:r.created_at,
 };}
 function roundToSb(r){ return {
@@ -1861,9 +1863,9 @@ function mkCell(dt,extra,scheds,notes,todayStr){
     const myScheds=ds_scheds.filter(s=>s.userId===S.user);
     const partnerScheds=ds_scheds.filter(s=>s.userId!==S.user);
     const bothHave=myScheds.length>0&&partnerScheds.length>0;
+    const hasCouple=ds_scheds.some(s=>s.isCouple); // isCouple 플래그로도 판단
 
-    if(bothHave){
-      // 둘 다 있으면 빨간색 단일 라벨
+    if(bothHave||hasCouple){
       const lbl=document.createElement('div');
       lbl.className='cal-label';
       lbl.style.cssText='background:#FFD6D6;color:#9A0000;';
