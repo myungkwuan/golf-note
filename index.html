@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v2.4 -->
+<!-- 골프노트 v2.5 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1863,12 +1863,10 @@ function mkCell(dt,extra,scheds,notes,todayStr){
   if(ds_scheds.length||ds_notes.length){
     const labels=document.createElement('div'); labels.className='cal-dots';
     // 같은 날 두 사람 일정이 겹치면 하나로 합쳐서 표시
-    const myScheds=ds_scheds.filter(s=>s.userId===S.user);
-    const partnerScheds=ds_scheds.filter(s=>s.userId!==S.user);
-    const bothHave=myScheds.length>0&&partnerScheds.length>0;
-    const hasCouple=ds_scheds.some(s=>s.isCouple); // isCouple 플래그로도 판단
+    const hasCouple=ds_scheds.some(s=>s.isCouple);
 
-    if(bothHave||hasCouple){
+    if(hasCouple){
+      // isCouple=true인 일정만 💑 함께 표시
       const lbl=document.createElement('div');
       lbl.className='cal-label';
       lbl.style.cssText='background:#FFD6D6;color:#9A0000;';
