@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v2.5 -->
+<!-- 골프노트 v2.6 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -190,6 +190,7 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .cal-label{font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;line-height:1.5;white-space:nowrap;letter-spacing:.2px}
 .cal-label.join{background:#E0D8FF;color:#4A2FBE}
 .cal-label.solo{background:#CCF0DC;color:#0F5C30}
+.cal-label.tennis{background:#FDE8F8;color:#8B1A6B}
 .cal-label.pending{background:#FDE8B0;color:#7A4E00}
 .cal-label.cancelled{background:var(--gray-100);color:var(--gray-500)}
 
@@ -1100,6 +1101,7 @@ textarea.form-input{resize:none;min-height:72px}
       <div class="status-btn-group">
         <button class="status-btn" data-play="join" onclick="selectPlayType(this)">👥 조인플레이</button>
         <button class="status-btn" data-play="solo" onclick="selectPlayType(this)">📋 예약</button>
+        <button class="status-btn" data-play="tennis" onclick="selectPlayType(this)">🎾 테니스</button>
         <button class="status-btn" data-play="etc" onclick="selectPlayType(this)">📝 기타</button>
       </div>
       <!-- 기타 선택 시 메모 입력란 -->
@@ -1880,7 +1882,10 @@ function mkCell(dt,extra,scheds,notes,todayStr){
         let cls,txt;
         if(s.status==='cancelled'){cls='cancelled';txt='취소';}
         else if(s.status==='pending'){cls='pending';txt='미정';}
-        else{cls=s.playType==='solo'?'solo':'join';txt=s.playType==='solo'?'예약':'조인';}
+        else{
+        cls=s.playType==='solo'?'solo':s.playType==='tennis'?'tennis':'join';
+        txt=s.playType==='solo'?'예약':s.playType==='tennis'?'🎾 테니스':'조인';
+      }
         lbl.className='cal-label '+cls;
         if(!isOwn&&!isCouple) lbl.style.opacity='.4';
         lbl.textContent=txt;
@@ -2539,8 +2544,9 @@ function schedCardHTML(s){
         <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0;${
           s.playType==='solo'?'background:#CCF0DC;color:#0F5C30':
           s.playType==='etc'?'background:#E8EFEB;color:#374D41':
+          s.playType==='tennis'?'background:#FDE8F8;color:#8B1A6B':
           'background:#E0D8FF;color:#4A2FBE'
-        }">${s.playType==='solo'?'예약':s.playType==='etc'?'📝 기타':'조인'}</span>
+        }">${s.playType==='solo'?'예약':s.playType==='etc'?'📝 기타':s.playType==='tennis'?'🎾 테니스':'조인'}</span>
         ${s.noCaddie?`<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FEF3DC;color:#7A4E00">노캐디</span>`:''}
         ${!isOwn?`<span style="font-size:11px;font-weight:600;color:var(--text-muted)">${partner?.name||''}</span>`:''}
         ${isCouple&&isOwn?`<span style="font-size:11px;font-weight:700;color:var(--gold)">💑공동</span>`:''}
