@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v2.6 -->
+<!-- 골프노트 v2.7 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1884,7 +1884,7 @@ function mkCell(dt,extra,scheds,notes,todayStr){
         else if(s.status==='pending'){cls='pending';txt='미정';}
         else{
         cls=s.playType==='solo'?'solo':s.playType==='tennis'?'tennis':'join';
-        txt=s.playType==='solo'?'예약':s.playType==='tennis'?'🎾 테니스':'조인';
+        txt=s.playType==='solo'?'예약':s.playType==='tennis'?'테니스':'조인';
       }
         lbl.className='cal-label '+cls;
         if(!isOwn&&!isCouple) lbl.style.opacity='.4';
