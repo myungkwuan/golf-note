@@ -1864,40 +1864,41 @@ function mkCell(dt,extra,scheds,notes,todayStr){
   const ds_notes=(notes||[]).filter(n=>n.date===ds);
   if(ds_scheds.length||ds_notes.length){
     const labels=document.createElement('div'); labels.className='cal-dots';
-    // 같은 날 두 사람 일정이 겹치면 하나로 합쳐서 표시
-    const hasCouple=ds_scheds.some(s=>s.isCouple);
     const hasTennis=ds_scheds.some(s=>s.isCouple&&s.playType==='tennis');
+    const hasCouple=ds_scheds.some(s=>s.isCouple&&s.playType!=='tennis');
+    const soloScheds=ds_scheds.filter(s=>!s.isCouple);
 
+    // 테니스 공동 🎾
     if(hasTennis){
       const lbl=document.createElement('div');
       lbl.className='cal-label tennis';
       lbl.textContent='🎾';
       labels.appendChild(lbl);
-    } else if(hasCouple){
-      // isCouple=true인 일정만 💑 함께 표시
+    }
+    // 골프 공동 💑 함께
+    if(hasCouple){
       const lbl=document.createElement('div');
       lbl.className='cal-label';
       lbl.style.cssText='background:#FFD6D6;color:#9A0000;';
       lbl.textContent='💑 함께';
       labels.appendChild(lbl);
-    } else {
-      ds_scheds.slice(0,2).forEach(s=>{
-        const lbl=document.createElement('div');
-        const isOwn=s.userId===S.user;
-        const isCouple=s.isCouple;
-        let cls,txt;
-        if(s.status==='cancelled'){cls='cancelled';txt='취소';}
-        else if(s.status==='pending'){cls='pending';txt='미정';}
-        else{
+    }
+    // 개별 일정 (공동 아닌 것)
+    soloScheds.slice(0,2).forEach(s=>{
+      const lbl=document.createElement('div');
+      const isOwn=s.userId===S.user;
+      let cls,txt;
+      if(s.status==='cancelled'){cls='cancelled';txt='취소';}
+      else if(s.status==='pending'){cls='pending';txt='미정';}
+      else{
         cls=s.playType==='solo'?'solo':s.playType==='tennis'?'tennis':'join';
         txt=s.playType==='solo'?'예약':s.playType==='tennis'?'🎾':'조인';
       }
-        lbl.className='cal-label '+cls;
-        if(!isOwn&&!isCouple) lbl.style.opacity='.4';
-        lbl.textContent=txt;
-        labels.appendChild(lbl);
-      });
-    }
+      lbl.className='cal-label '+cls;
+      if(!isOwn) lbl.style.opacity='.4';
+      lbl.textContent=txt;
+      labels.appendChild(lbl);
+    });
     ds_notes.slice(0,1).forEach(n=>{
       const lbl=document.createElement('div');
       const catTxt={appointment:'약속',task:'업무',etc:'메모'};
