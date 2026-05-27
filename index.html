@@ -1866,8 +1866,14 @@ function mkCell(dt,extra,scheds,notes,todayStr){
     const labels=document.createElement('div'); labels.className='cal-dots';
     // 같은 날 두 사람 일정이 겹치면 하나로 합쳐서 표시
     const hasCouple=ds_scheds.some(s=>s.isCouple);
+    const hasTennis=ds_scheds.some(s=>s.isCouple&&s.playType==='tennis');
 
-    if(hasCouple){
+    if(hasTennis){
+      const lbl=document.createElement('div');
+      lbl.className='cal-label tennis';
+      lbl.textContent='🎾';
+      labels.appendChild(lbl);
+    } else if(hasCouple){
       // isCouple=true인 일정만 💑 함께 표시
       const lbl=document.createElement('div');
       lbl.className='cal-label';
@@ -2091,15 +2097,16 @@ async function saveSchedule(){
     }
     await DB.upsertS(base);
   } else {
-    // 신규 — 부부 함께 등록이면 상대방 일정도 생성
-    if(S.coupleMode){
+    // 신규 — 테니스는 자동으로 부부 함께 등록, 부부함께 버튼도 포함
+    if(S.coupleMode || S.playType==='tennis'){
       const groupId=uid();
       base.isCouple=true; base.coupleGroupId=groupId;
       await DB.upsertS(base);
       const partner=USERS.find(u=>u.id!==S.user);
       const partnerObj={...base, id:uid(), userId:partner.id};
       await DB.upsertS(partnerObj);
-      showToast(`💑 ${partner.name}의 일정에도 추가했습니다`);
+      const msg=S.playType==='tennis'?`🎾 ${partner.name}의 일정에도 테니스 일정을 추가했습니다`:`💑 ${partner.name}의 일정에도 추가했습니다`;
+      showToast(msg);
     } else {
       await DB.upsertS(base);
     }
