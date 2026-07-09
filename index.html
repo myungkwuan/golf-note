@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v2.8 -->
+<!-- 골프노트 v3.0 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1729,6 +1729,7 @@ function schedToSb(s){ return {
   is_couple:!!s.isCouple, couple_group_id:s.coupleGroupId||null,
   play_type:s.playType||'join',
   no_caddie:!!s.noCaddie,
+  etc_memo:s.etcMemo||null,
   created_at:s.createdAt,
 };}
 function sbToSched(r){ return {
@@ -1739,6 +1740,7 @@ function sbToSched(r){ return {
   isCouple:r.is_couple||false, coupleGroupId:r.couple_group_id||null,
   playType:r.play_type||'join',
   noCaddie:r.no_caddie||false,
+  etcMemo:r.etc_memo||'',
   createdAt:r.created_at,
 };}
 function roundToSb(r){ return {
@@ -1864,9 +1866,9 @@ function mkCell(dt,extra,scheds,notes,todayStr){
   const ds_notes=(notes||[]).filter(n=>n.date===ds);
   if(ds_scheds.length||ds_notes.length){
     const labels=document.createElement('div'); labels.className='cal-dots';
-    const hasTennis=ds_scheds.some(s=>s.isCouple&&s.playType==='tennis');
-    const hasCouple=ds_scheds.some(s=>s.isCouple&&s.playType!=='tennis');
-    const soloScheds=ds_scheds.filter(s=>!s.isCouple);
+    const hasTennis=ds_scheds.some(s=>s.isCouple&&s.playType==='tennis'&&s.status!=='cancelled');
+    const hasCouple=ds_scheds.some(s=>s.isCouple&&s.playType!=='tennis'&&s.status!=='cancelled');
+    const soloScheds=ds_scheds.filter(s=>!s.isCouple||(s.isCouple&&s.status==='cancelled'));
 
     // 테니스 공동 🎾
     if(hasTennis){
@@ -1890,6 +1892,7 @@ function mkCell(dt,extra,scheds,notes,todayStr){
       let cls,txt;
       if(s.status==='cancelled'){cls='cancelled';txt='취소';}
       else if(s.status==='pending'){cls='pending';txt='미정';}
+      else if(s.playType==='etc'){cls='cancelled';txt='📝'+(s.etcMemo?s.etcMemo.slice(0,4):'기타');}
       else{
         cls=s.playType==='solo'?'solo':s.playType==='tennis'?'tennis':'join';
         txt=s.playType==='solo'?'예약':s.playType==='tennis'?'🎾':'조인';
@@ -2048,9 +2051,6 @@ function toggleCoupleMode(){
     btn.textContent='💑 부부 함께 등록 — OFF';
     btn.style.cssText='width:100%;padding:12px 16px;border-radius:var(--r-md);font-size:14px;font-weight:700;background:var(--gray-100);color:var(--text-sub);border:2px solid var(--gray-200);display:flex;align-items:center;justify-content:center;gap:8px;';
   }
-}
-function onCoupleToggle(){
-  S.coupleMode=document.getElementById('sched-couple-toggle')?.checked||false;
 }
 function selectEditScope(scope){
   S.editScope=scope;
@@ -2221,36 +2221,6 @@ function calcHoleTotals(){
   document.getElementById('hole-total').textContent=total!=null?`${total}타 (${totalDiffStr})`:'-';
   if(total!=null) document.getElementById('round-score').value=total;
 }
-function applyParBulk(){
-  const fp3=parseInt(document.getElementById('front-par3').value)||0;
-  const fp5=parseInt(document.getElementById('front-par5').value)||0;
-  const bp3=parseInt(document.getElementById('back-par3').value)||0;
-  const bp5=parseInt(document.getElementById('back-par5').value)||0;
-  // 전반: 파3 fp3개, 파5 fp5개, 나머지 파4
-  const makePars=(p3,p5)=>{
-    const arr=Array(9).fill(4);
-    let p3left=Math.min(p3,9), p5left=Math.min(p5,9-p3left);
-    for(let i=0;i<9;i++){
-      if(p3left>0){arr[i]=3;p3left--;}
-      else if(p5left>0){arr[i]=5;p5left--;}
-    }
-    return arr;
-  };
-  const front=makePars(fp3,fp5);
-  const back=makePars(bp3,bp5);
-  S.holePars=[...front,...back];
-  // 버튼 UI 업데이트
-  for(let i=0;i<18;i++){
-    const btn=document.getElementById('par-btn-'+i);
-    if(btn) btn.textContent='P'+S.holePars[i];
-    const inp=document.getElementById('hole-inp-'+i);
-    if(inp&&inp.value) applyHoleStyling(i,parseInt(inp.value),S.holePars[i]);
-  }
-  calcHoleTotals();
-  buildHoleTabs();
-  showToast('파 설정이 적용됐습니다');
-}
-
 function buildHoleTabs(){
   const row=document.getElementById('hole-tab-row'); if(!row) return;
   row.innerHTML='';
@@ -3186,10 +3156,11 @@ function disconnectSupabase(){
 
 async function exportData(){
   const data={
-    version:2, exportedAt:new Date().toISOString(),
+    version:3, exportedAt:new Date().toISOString(),
     exportedBy:getCur()?.name||'',
     schedules:await DB.getS(),
     rounds:await DB.getR(),
+    notes:await DB.getNotes(),
     coursePars:DB.get('cp')||{},
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -3224,9 +3195,16 @@ async function importData(input){
         const existing=DB.get('cp')||{};
         DB.set('cp',{...data.coursePars,...existing});
       }
+      let addedN=0;
+      if(Array.isArray(data.notes)){
+        const existing=await DB.getNotes();
+        const existIds=new Set(existing.map(x=>x.id));
+        const newItems=data.notes.filter(x=>!existIds.has(x.id));
+        for(const item of newItems){ await DB.upsertNote(item); addedN++; }
+      }
       const result=document.getElementById('import-result');
       result.style.display='block';
-      result.textContent=`✅ 복원 완료 — 일정 ${addedS}건, 기록 ${addedR}건 추가`;
+      result.textContent=`✅ 복원 완료 — 일정 ${addedS}건, 기록 ${addedR}건, 메모 ${addedN}건 추가`;
       renderAll(); renderSettingsTab();
       input.value='';
     }catch(err){
