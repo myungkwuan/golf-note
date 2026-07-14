@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v3.0 -->
+<!-- 골프노트 v3.1 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -133,7 +133,7 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .tab-nav-btn.active{color:#fff;border-bottom-color:var(--gold)}
 
 /* ── 콘텐츠 ── */
-.tab-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--green-bg);padding-bottom:24px}
+.tab-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--green-bg);padding-bottom:96px}
 .tab-pane{display:none}
 .tab-pane.active{display:block}
 
@@ -161,7 +161,7 @@ input,textarea,select{font-family:inherit;font-size:15px}
 .cal-day-label:first-child{color:var(--red)}
 .cal-day-label:last-child{color:var(--green-rich)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;min-height:40px;transition:background .15s}
+.cal-cell{min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:5px;border-radius:8px;cursor:pointer;transition:background .15s}
 .cal-cell:active{background:var(--gray-100)}
 .cal-cell.today .cal-num{
   background:var(--green-deep);color:#fff;
@@ -829,9 +829,6 @@ textarea.form-input{resize:none;min-height:72px}
             <button onclick="changeMonth(-1)">‹</button>
             <button onclick="changeMonth(1)">›</button>
           </div>
-          <label class="cal-couple-toggle">
-            <input type="checkbox" id="couple-toggle" onchange="renderCalendar()"> 부부
-          </label>
         </div>
         <div class="cal-days-header">
           <div class="cal-day-label">일</div><div class="cal-day-label">월</div>
@@ -1870,24 +1867,11 @@ function mkCell(dt,extra,scheds,notes,todayStr){
     const hasCouple=ds_scheds.some(s=>s.isCouple&&s.playType!=='tennis'&&s.status!=='cancelled');
     const soloScheds=ds_scheds.filter(s=>!s.isCouple||(s.isCouple&&s.status==='cancelled'));
 
-    // 테니스 공동 🎾
-    if(hasTennis){
-      const lbl=document.createElement('div');
-      lbl.className='cal-label tennis';
-      lbl.textContent='🎾';
-      labels.appendChild(lbl);
-    }
-    // 골프 공동 💑 함께
-    if(hasCouple){
-      const lbl=document.createElement('div');
-      lbl.className='cal-label';
-      lbl.style.cssText='background:#FFD6D6;color:#9A0000;';
-      lbl.textContent='💑 함께';
-      labels.appendChild(lbl);
-    }
-    // 개별 일정 (공동 아닌 것)
-    soloScheds.slice(0,2).forEach(s=>{
-      const lbl=document.createElement('div');
+    // 라벨 최대 2개, 초과분은 +N
+    const allLabels=[];
+    if(hasTennis) allLabels.push({cls:'tennis',txt:'🎾',style:''});
+    if(hasCouple) allLabels.push({cls:'',txt:'💑 함께',style:'background:#FFD6D6;color:#9A0000;'});
+    soloScheds.forEach(s=>{
       const isOwn=s.userId===S.user;
       let cls,txt;
       if(s.status==='cancelled'){cls='cancelled';txt='취소';}
@@ -1897,20 +1881,26 @@ function mkCell(dt,extra,scheds,notes,todayStr){
         cls=s.playType==='solo'?'solo':s.playType==='tennis'?'tennis':'join';
         txt=s.playType==='solo'?'예약':s.playType==='tennis'?'🎾':'조인';
       }
-      lbl.className='cal-label '+cls;
-      if(!isOwn) lbl.style.opacity='.4';
-      lbl.textContent=txt;
-      labels.appendChild(lbl);
+      allLabels.push({cls,txt,style:!isOwn?'opacity:.4;':''});
     });
-    ds_notes.slice(0,1).forEach(n=>{
-      const lbl=document.createElement('div');
+    ds_notes.forEach(n=>{
       const catTxt={appointment:'약속',task:'업무',etc:'메모'};
-      lbl.className='cal-label';
-      lbl.style.cssText='background:#FDE8B0;color:#7A4E00;';
-      if(n.user_id!==S.user) lbl.style.opacity='.45';
-      lbl.textContent='📌 '+(catTxt[n.category]||'메모');
+      allLabels.push({cls:'',txt:'📌 '+(catTxt[n.category]||'메모'),style:'background:#FDE8B0;color:#7A4E00;'+(n.user_id!==S.user?'opacity:.45;':'')});
+    });
+    allLabels.slice(0,2).forEach(L=>{
+      const lbl=document.createElement('div');
+      lbl.className='cal-label '+L.cls;
+      if(L.style) lbl.style.cssText=L.style;
+      lbl.textContent=L.txt;
       labels.appendChild(lbl);
     });
+    if(allLabels.length>2){
+      const more=document.createElement('div');
+      more.className='cal-label';
+      more.style.cssText='background:var(--gray-100);color:var(--gray-500);';
+      more.textContent='+'+(allLabels.length-2);
+      labels.appendChild(more);
+    }
     cell.appendChild(labels);
   }
   return cell;
