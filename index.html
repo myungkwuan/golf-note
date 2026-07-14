@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v3.1 -->
+<!-- 골프노트 v3.2 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -3060,7 +3060,10 @@ async function deleteNote(id){
   showToast('메모를 삭제했습니다');
 }
 async function renderNotes(){
-  const notes=await DB.getNotes();
+  const allNotes=await DB.getNotes();
+  const td=today();
+  // 날짜 지난 메모는 홈에서 제외 (날짜 없는 메모는 항상 표시)
+  const notes=allNotes.filter(n=>!n.date||n.date>=td);
   const el=document.getElementById('notes-list'); if(!el) return;
   if(!notes.length){ el.innerHTML='<div class="no-schedule" style="padding:12px 0;font-size:13px">공유 메모가 없습니다</div>'; return; }
   const catLabel={appointment:'📅 약속',task:'📋 업무',etc:'💬 기타'};
