@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v3.4 -->
+<!-- 골프노트 v3.5 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1942,7 +1942,7 @@ async function openDaySheet(ds){
           <div class="day-sched-course">${coupleIcon}${s.playType==='etc'?(s.etcMemo||s.course):s.course}${cn}</div>
           <div class="day-sched-time">${s.time||''} · ${STATUS_LABELS[s.status]} · ${u.name}</div>
         </div><span style="font-size:14px;color:var(--gray-500)">›</span>`;
-      if(isOwn) item.onclick=()=>{closeAllSheets(true);openScheduleSheet(s.id);};
+      item.onclick=()=>{closeAllSheets(true);openScheduleSheet(s.id);};
       list.appendChild(item);
     });
   }
@@ -1984,6 +1984,11 @@ async function openScheduleSheet(id){
   if(id){
     const all=await DB.getS();
     const s=all.find(x=>x.id===id); if(!s) return;
+    // 상대방 일정이면 제목에 이름 표시
+    if(s.userId!==S.user){
+      const owner=getUser(s.userId);
+      document.getElementById('sched-sheet-title').textContent=`${owner.name}의 일정`;
+    }
     document.getElementById('sched-date').value=s.date;
     document.getElementById('sched-tee').value=s.teeTime||s.time||'';
     document.getElementById('sched-course').value=s.course;
@@ -2091,7 +2096,7 @@ async function saveSchedule(){
     // 수정 — 기존 roundId/createdAt 보존
     const all=await DB.getS();
     const orig=all.find(x=>x.id===S.editSId);
-    if(orig){ base.roundId=orig.roundId; base.createdAt=orig.createdAt; base.isCouple=orig.isCouple; base.coupleGroupId=orig.coupleGroupId; }
+    if(orig){ base.roundId=orig.roundId; base.createdAt=orig.createdAt; base.isCouple=orig.isCouple; base.coupleGroupId=orig.coupleGroupId; base.userId=orig.userId; }
     // 부부 일정이고 "둘 다 수정"이면 상대방 것도 업데이트
     if(orig?.isCouple && S.editScope==='both' && orig.coupleGroupId){
       const partner=USERS.find(u=>u.id!==S.user);
@@ -2517,7 +2522,7 @@ function schedCardHTML(s){
   if(isCouple) cardCls+=' couple-shared';
   else if(!isOwn) cardCls+=' partner';
 
-  return `<div class="${cardCls}" data-status="${s.status}" onclick="${isOwn?`openScheduleSheet('${s.id}')`:``}">
+  return `<div class="${cardCls}" data-status="${s.status}" onclick="openScheduleSheet('${s.id}')">
     <div class="sched-date-block">
       <div class="day-num">${dt.getDate()}</div>
       <div class="day-name">${DAYS[dt.getDay()]}</div>
