@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v3.3 -->
+<!-- 골프노트 v3.4 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1774,6 +1774,21 @@ function localDateStr(d){
   return `${y}-${m}-${day}`;
 }
 const today=()=>localDateStr();
+// 부부 공동 일정은 하나만 표시 (내 레코드 우선)
+function dedupeCouple(scheds){
+  const seen=new Set();
+  const result=[];
+  // 내 것 먼저 정렬해서 내 레코드가 우선 선택되게
+  const sorted=[...scheds].sort((a,b)=>(a.userId===S.user?0:1)-(b.userId===S.user?0:1));
+  for(const s of sorted){
+    if(s.isCouple&&s.coupleGroupId){
+      if(seen.has(s.coupleGroupId)) continue;
+      seen.add(s.coupleGroupId);
+    }
+    result.push(s);
+  }
+  return result;
+}
 const fmtDate=d=>{const dt=new Date(d+'T00:00:00');return `${dt.getFullYear()}년 ${dt.getMonth()+1}월 ${dt.getDate()}일 (${DAYS[dt.getDay()]})`};
 const fmtShort=d=>{const dt=new Date(d+'T00:00:00');return `${dt.getMonth()+1}/${dt.getDate()}`};
 const getMonth=d=>parseInt(d.slice(5,7))-1;
@@ -1911,7 +1926,7 @@ function onDayClick(ds){S.selDay=ds;renderCalendar();openDaySheet(ds);}
 async function openDaySheet(ds){
   document.getElementById('day-sheet-title').textContent=fmtDate(ds);
   const all=await DB.getS();
-  const scheds=all.filter(s=>s.date===ds); // 두 사람 일정 모두 표시
+  const scheds=dedupeCouple(all.filter(s=>s.date===ds)); // 공동 일정은 하나만
   const list=document.getElementById('day-sheet-list'); list.innerHTML='';
   if(!scheds.length){list.innerHTML='<div class="day-no-sched">이 날 일정이 없습니다</div>';}
   else{
@@ -2483,7 +2498,7 @@ async function renderUpcoming(){
   const td=today();
   const all=await DB.getS();
   // 내 일정 + 상대방 일정 모두 포함, 날짜순 정렬
-  const up=all.filter(s=>s.date>=td&&s.status!=='cancelled')
+  const up=dedupeCouple(all.filter(s=>s.date>=td&&s.status!=='cancelled'))
     .sort((a,b)=>a.date.localeCompare(b.date)||a.userId.localeCompare(b.userId)).slice(0,4);
   document.getElementById('upcoming-list').innerHTML=up.length
     ?up.map(s=>schedCardHTML(s)).join('')
@@ -2815,7 +2830,7 @@ async function renderScheduleTab(){
   }
   setTimeout(()=>{const a=tabRow.querySelector('.active');if(a)a.scrollIntoView({inline:'center',behavior:'smooth'});},50);
 
-  const monthScheds=scheds.filter(s=>getMonth(s.date)===S.schedMonth).sort((a,b)=>a.date.localeCompare(b.date));
+  const monthScheds=dedupeCouple(scheds.filter(s=>getMonth(s.date)===S.schedMonth)).sort((a,b)=>a.date.localeCompare(b.date));
   const monthNotes=notes.filter(n=>getMonth(n.date)===S.schedMonth).sort((a,b)=>a.date.localeCompare(b.date));
   const list=document.getElementById('schedule-list');
   if(!monthScheds.length&&!monthNotes.length){
