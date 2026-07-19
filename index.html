@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v3.5 -->
+<!-- 골프노트 v3.6 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1927,8 +1927,9 @@ async function openDaySheet(ds){
   document.getElementById('day-sheet-title').textContent=fmtDate(ds);
   const all=await DB.getS();
   const scheds=dedupeCouple(all.filter(s=>s.date===ds)); // 공동 일정은 하나만
+  const dayNotes=(await DB.getNotes()).filter(n=>n.date===ds);
   const list=document.getElementById('day-sheet-list'); list.innerHTML='';
-  if(!scheds.length){list.innerHTML='<div class="day-no-sched">이 날 일정이 없습니다</div>';}
+  if(!scheds.length&&!dayNotes.length){list.innerHTML='<div class="day-no-sched">이 날 일정이 없습니다</div>';}
   else{
     scheds.forEach(s=>{
       const u=getUser(s.userId);
@@ -1943,6 +1944,21 @@ async function openDaySheet(ds){
           <div class="day-sched-time">${s.time||''} · ${STATUS_LABELS[s.status]} · ${u.name}</div>
         </div><span style="font-size:14px;color:var(--gray-500)">›</span>`;
       item.onclick=()=>{closeAllSheets(true);openScheduleSheet(s.id);};
+      list.appendChild(item);
+    });
+    // 메모 (약속/업무/기타)
+    const catLabel={appointment:'📅 약속',task:'📋 업무',etc:'💬 기타'};
+    dayNotes.forEach(n=>{
+      const writer=USERS.find(x=>x.id===n.user_id);
+      const isOwn=n.user_id===S.user;
+      const item=document.createElement('div'); item.className='day-sched-item';
+      if(!isOwn) item.style.opacity='.55';
+      item.innerHTML=`<div class="day-sched-dot" style="background:#E8C060"></div>
+        <div class="day-sched-info">
+          <div class="day-sched-course">📌 ${n.text}${n.done?' ✓':''}</div>
+          <div class="day-sched-time">${catLabel[n.category]||'기타'} · ${writer?.name||''}</div>
+        </div><span style="font-size:14px;color:var(--gray-500)">›</span>`;
+      item.onclick=()=>{closeAllSheets(true);openNoteEdit(n.id);};
       list.appendChild(item);
     });
   }
@@ -3053,11 +3069,13 @@ async function saveNote(){
   const text=document.getElementById('note-text').value.trim();
   if(!text){alert('내용을 입력해주세요');return;}
   const date=document.getElementById('note-date').value||null;
+  const orig=_editNoteId?(await DB.getNotes()).find(x=>x.id===_editNoteId):null;
   const obj={
-    id:_editNoteId||uid(), user_id:S.user,
+    id:_editNoteId||uid(),
+    user_id:orig?orig.user_id:S.user, // 수정 시 원래 작성자 유지
     category:_selNoteCat,
-    text, done:false, date,
-    created_at:_editNoteId?(await DB.getNotes()).find(x=>x.id===_editNoteId)?.created_at||Date.now():Date.now(),
+    text, done:orig?orig.done:false, date,
+    created_at:orig?.created_at||Date.now(),
   };
   await DB.upsertNote(obj);
   closeAllSheets();
