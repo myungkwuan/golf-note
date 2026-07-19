@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v3.2 -->
+<!-- 골프노트 v3.3 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1545,27 +1545,27 @@ function startRealtime(){
 }
 
 function onRemoteChange(type, payload){
-  // 내가 방금 저장한 것은 무시 (내 userId와 같은 경우)
   const record = payload.new || payload.old;
   const changedUserId = record?.user_id || record?.userId;
-  if(changedUserId === S.user) return; // 내 변경은 이미 로컬에 반영됨
-
-  // 디바운스: 연속 변경 시 300ms 후 1번만 렌더
+  // 항상 갱신 (상대방이 내 몫으로 등록한 부부 일정도 내 user_id라서 무시하면 안 됨)
   clearTimeout(_syncDebounce);
   _syncDebounce = setTimeout(async ()=>{
-    // 캐시 갱신
     if(_sb){
       const{data:sd}=await _sb.from('schedules').select('*').order('date');
       if(sd) DB.set('s', sd.map(sbToSched));
       const{data:rd}=await _sb.from('rounds').select('*').order('date',{ascending:false});
       if(rd) DB.set('r', rd.map(sbToRound));
+      const{data:nd}=await _sb.from('notes').select('*').order('created_at',{ascending:false});
+      if(nd) DB.set('notes', nd);
     }
     renderAll();
-    // 상대방 변경 알림 토스트
-    const partner = USERS.find(u=>u.id===changedUserId);
-    const action = payload.eventType==='INSERT'?'추가':payload.eventType==='DELETE'?'삭제':'수정';
-    const target = type==='schedule'?'일정':'기록';
-    if(partner) showSyncToast(`${partner.name}이(가) ${target}을 ${action}했습니다`);
+    // 상대방 변경일 때만 토스트
+    if(changedUserId && changedUserId !== S.user){
+      const partner = USERS.find(u=>u.id===changedUserId);
+      const action = payload.eventType==='INSERT'?'추가':payload.eventType==='DELETE'?'삭제':'수정';
+      const target = type==='schedule'?'일정':type==='note'?'메모':'기록';
+      if(partner) showSyncToast(`${partner.name}이(가) ${target}을 ${action}했습니다`);
+    }
   }, 300);
 }
 
@@ -1910,23 +1910,24 @@ function onDayClick(ds){S.selDay=ds;renderCalendar();openDaySheet(ds);}
 // ── 날짜 시트 ──
 async function openDaySheet(ds){
   document.getElementById('day-sheet-title').textContent=fmtDate(ds);
-  const couple=document.getElementById('couple-toggle').checked;
   const all=await DB.getS();
-  const scheds=all.filter(s=>s.date===ds&&(couple||s.userId===S.user));
+  const scheds=all.filter(s=>s.date===ds); // 두 사람 일정 모두 표시
   const list=document.getElementById('day-sheet-list'); list.innerHTML='';
   if(!scheds.length){list.innerHTML='<div class="day-no-sched">이 날 일정이 없습니다</div>';}
   else{
     scheds.forEach(s=>{
       const u=getUser(s.userId);
+      const isOwn=s.userId===S.user;
       const item=document.createElement('div'); item.className='day-sched-item';
+      if(!isOwn&&!s.isCouple) item.style.opacity='.55';
       const cn=s.courseName?` · ${s.courseName}`:'';
-      const coupleIcon=s.isCouple?'💑 ':'';
+      const coupleIcon=s.isCouple?(s.playType==='tennis'?'🎾 ':'💑 '):'';
       item.innerHTML=`<div class="day-sched-dot ${s.status}"></div>
         <div class="day-sched-info">
-          <div class="day-sched-course">${coupleIcon}${s.course}${cn}</div>
-          <div class="day-sched-time">${s.time||''} · ${STATUS_LABELS[s.status]}${couple?' · '+u.name:''}</div>
+          <div class="day-sched-course">${coupleIcon}${s.playType==='etc'?(s.etcMemo||s.course):s.course}${cn}</div>
+          <div class="day-sched-time">${s.time||''} · ${STATUS_LABELS[s.status]} · ${u.name}</div>
         </div><span style="font-size:14px;color:var(--gray-500)">›</span>`;
-      item.onclick=()=>{closeAllSheets(true);openScheduleSheet(s.id);};
+      if(isOwn) item.onclick=()=>{closeAllSheets(true);openScheduleSheet(s.id);};
       list.appendChild(item);
     });
   }
