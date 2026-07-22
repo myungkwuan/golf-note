@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v3.6 -->
+<!-- 골프노트 v3.7 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2113,6 +2113,15 @@ async function saveSchedule(){
     const all=await DB.getS();
     const orig=all.find(x=>x.id===S.editSId);
     if(orig){ base.roundId=orig.roundId; base.createdAt=orig.createdAt; base.isCouple=orig.isCouple; base.coupleGroupId=orig.coupleGroupId; base.userId=orig.userId; }
+    // 수정으로 테니스가 됐는데 아직 공동이 아니면 → 공동으로 전환 + 상대방 일정 생성
+    if(S.playType==='tennis' && orig && !orig.isCouple){
+      const groupId=uid();
+      base.isCouple=true; base.coupleGroupId=groupId;
+      const partner=USERS.find(u=>u.id!==base.userId);
+      const partnerObj={...base, id:uid(), userId:partner.id};
+      await DB.upsertS(partnerObj);
+      showToast(`🎾 ${partner.name}의 일정에도 추가했습니다`);
+    }
     // 부부 일정이고 "둘 다 수정"이면 상대방 것도 업데이트
     if(orig?.isCouple && S.editScope==='both' && orig.coupleGroupId){
       const partner=USERS.find(u=>u.id!==S.user);
@@ -2879,7 +2888,7 @@ async function renderScheduleTab(){
         <div style="font-size:12px;color:var(--text-muted);margin-top:3px">${writer?.name||''}${isOwn?' · 탭해서 수정':''}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-        <div class="note-check${n.done?' done':''}" onclick="toggleNote('${n.id}');renderScheduleTab()"></div>
+        <div class="note-check${n.done?' done':''}" onclick="toggleNote('${n.id}').then(()=>renderScheduleTab())"></div>
         <button style="font-size:11px;color:var(--text-muted)" onclick="deleteNote('${n.id}')">✕</button>
       </div>
     </div>`;
