@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 골프노트 v3.7 -->
+<!-- 골프노트 v3.8 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -922,6 +922,14 @@ textarea.form-input{resize:none;min-height:72px}
         <div class="settings-card">
           <div class="settings-card-title">📦 데이터 현황</div>
           <div id="data-summary" class="data-summary"></div>
+        </div>
+
+        <!-- 클라우드 강제 업로드 -->
+        <div class="settings-card" style="border:2px solid var(--gold)">
+          <div class="settings-card-title">☁️ 이 기기 데이터 클라우드로 올리기</div>
+          <p class="settings-desc">이 기기에 저장된 모든 일정·기록·메모를<br>클라우드(Supabase)로 강제 업로드합니다.<br>상대방 기기에 동기화가 안 될 때 사용하세요.</p>
+          <button class="settings-btn settings-btn-primary" onclick="forceUploadAll()">☁️ 전부 클라우드로 올리기</button>
+          <div id="upload-result" style="margin-top:10px;font-size:13px;color:var(--green-mid);display:none"></div>
         </div>
 
         <!-- 백업 -->
@@ -3143,6 +3151,36 @@ async function renderNotes(){
 
 // ══════════════════════════════════════
 // ══════════════════════════════════════
+async function forceUploadAll(){
+  const result=document.getElementById('upload-result');
+  result.style.display='block';
+  result.style.color='var(--text-sub)';
+  result.textContent='⏳ 업로드 중...';
+  if(!_sb){ result.textContent='❌ 클라우드 연결이 없습니다'; return; }
+  let okS=0,failS=0,okR=0,failR=0,okN=0,failN=0;
+  // 일정
+  const scheds=DB.get('s')||[];
+  for(const s of scheds){
+    try{ const{error}=await _sb.from('schedules').upsert(schedToSb(s)); if(error){failS++;console.error(error.message);}else okS++; }
+    catch(e){ failS++; }
+  }
+  // 기록
+  const rounds=DB.get('r')||[];
+  for(const r of rounds){
+    try{ const{error}=await _sb.from('rounds').upsert(roundToSb(r)); if(error){failR++;console.error(error.message);}else okR++; }
+    catch(e){ failR++; }
+  }
+  // 메모
+  const notes=DB.get('notes')||[];
+  for(const n of notes){
+    try{ const{error}=await _sb.from('notes').upsert(n); if(error){failN++;console.error(error.message);}else okN++; }
+    catch(e){ failN++; }
+  }
+  result.style.color=(failS+failR+failN)>0?'var(--red)':'var(--green-mid)';
+  result.innerHTML=`✅ 업로드 완료<br>일정 ${okS}건${failS?` (실패 ${failS})`:''}<br>기록 ${okR}건${failR?` (실패 ${failR})`:''}<br>메모 ${okN}건${failN?` (실패 ${failN})`:''}`;
+  showToast('☁️ 클라우드 업로드 완료');
+}
+
 async function renderSettingsTab(){
   const scheds=await DB.getS(), rounds=await DB.getR();
   const myScheds=scheds.filter(s=>s.userId===S.user);
